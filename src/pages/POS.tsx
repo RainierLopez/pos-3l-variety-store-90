@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { X, Plus, Minus, CreditCard, Printer, Wallet, DollarSign } from "lucide-react";
+import { X, Plus, Minus, CreditCard, Printer, Wallet, DollarSign, QrCode } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface Product {
   id: number;
@@ -10,10 +11,23 @@ interface Product {
   quantity: number;
 }
 
+interface CardDetails {
+  cardNumber: string;
+  expiryDate: string;
+  cvv: string;
+}
+
 const POS = () => {
   const [cart, setCart] = useState<Product[]>([]);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
+  const [showCardForm, setShowCardForm] = useState(false);
+  const [showEWalletForm, setShowEWalletForm] = useState(false);
+  const [cardDetails, setCardDetails] = useState<CardDetails>({
+    cardNumber: "",
+    expiryDate: "",
+    cvv: "",
+  });
   const { toast } = useToast();
 
   const products = [
@@ -69,6 +83,41 @@ const POS = () => {
     0
   );
 
+  const handlePaymentMethodSelect = (methodId: string) => {
+    setSelectedPaymentMethod(methodId);
+    setShowCardForm(methodId === "card");
+    setShowEWalletForm(methodId === "wallet");
+    
+    if (methodId === "cash") {
+      toast({
+        title: "Cash Payment Selected",
+        description: "The transaction will be successful once the payment is handed and the receipt will be given.",
+      });
+    }
+  };
+
+  const handleCardSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handlePayment();
+  };
+
+  const handleEWalletSubmit = () => {
+    handlePayment();
+  };
+
+  const handleImagePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const items = e.clipboardData?.items;
+    const item = items?.[0];
+
+    if (item?.type.indexOf("image") === 0) {
+      toast({
+        title: "QR Code received",
+        description: "Processing your payment...",
+      });
+      setTimeout(handlePayment, 2000);
+    }
+  };
+
   const handlePayment = () => {
     if (!selectedPaymentMethod) {
       toast({
@@ -93,6 +142,8 @@ const POS = () => {
       description: `Total amount: ₱${total.toFixed(2)} paid via ${selectedPaymentMethod}`,
     });
     setPaymentComplete(true);
+    setShowCardForm(false);
+    setShowEWalletForm(false);
   };
 
   const printReceipt = () => {
@@ -117,7 +168,6 @@ const POS = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Products Section */}
         <div className="glass-panel p-6 animate-in">
           <h2 className="text-2xl font-bold mb-4">Products</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -134,7 +184,6 @@ const POS = () => {
           </div>
         </div>
 
-        {/* Cart Section */}
         <div className="glass-panel p-6 animate-in">
           <h2 className="text-2xl font-bold mb-4">Cart</h2>
           <div className="space-y-4">
@@ -192,7 +241,8 @@ const POS = () => {
                         key={method.id}
                         variant={selectedPaymentMethod === method.id ? "default" : "outline"}
                         className="w-full"
-                        onClick={() => setSelectedPaymentMethod(method.id)}
+                        onClick={() => handlePaymentMethodSelect(method.id)}
+                        style={selectedPaymentMethod === method.id ? { backgroundColor: '#8B4513', color: 'white' } : {}}
                       >
                         {method.icon}
                         {method.name}
@@ -200,6 +250,63 @@ const POS = () => {
                     ))}
                   </div>
                 </div>
+
+                {showCardForm && (
+                  <form onSubmit={handleCardSubmit} className="space-y-4 animate-in">
+                    <Input
+                      type="text"
+                      placeholder="Card Number"
+                      value={cardDetails.cardNumber}
+                      onChange={(e) => setCardDetails({ ...cardDetails, cardNumber: e.target.value })}
+                      required
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input
+                        type="text"
+                        placeholder="MM/YY"
+                        value={cardDetails.expiryDate}
+                        onChange={(e) => setCardDetails({ ...cardDetails, expiryDate: e.target.value })}
+                        required
+                      />
+                      <Input
+                        type="text"
+                        placeholder="CVV"
+                        value={cardDetails.cvv}
+                        onChange={(e) => setCardDetails({ ...cardDetails, cvv: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      style={{ backgroundColor: '#8B4513', color: 'white' }}
+                    >
+                      Process Card Payment
+                    </Button>
+                  </form>
+                )}
+
+                {showEWalletForm && (
+                  <div className="space-y-4 animate-in">
+                    <div className="bg-white p-4 rounded-lg text-center">
+                      <QrCode className="mx-auto h-32 w-32 text-[#8B4513]" />
+                      <p className="mt-2 text-sm text-gray-600">Take a screenshot and paste it here</p>
+                    </div>
+                    <Input
+                      type="text"
+                      placeholder="Click here and press Ctrl+V to paste"
+                      onPaste={handleImagePaste}
+                      className="w-full"
+                    />
+                    <Button
+                      onClick={handleEWalletSubmit}
+                      className="w-full"
+                      style={{ backgroundColor: '#8B4513', color: 'white' }}
+                    >
+                      Paste here!
+                    </Button>
+                  </div>
+                )}
                 
                 <div className="border-t pt-4">
                   <div className="flex justify-between mb-4">
@@ -208,14 +315,16 @@ const POS = () => {
                       ₱{total.toFixed(2)}
                     </span>
                   </div>
-                  <Button
-                    onClick={handlePayment}
-                    className="w-full"
-                    style={{ backgroundColor: '#8B4513', color: 'white' }}
-                  >
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Pay Now
-                  </Button>
+                  {!showCardForm && !showEWalletForm && (
+                    <Button
+                      onClick={handlePayment}
+                      className="w-full"
+                      style={{ backgroundColor: '#8B4513', color: 'white' }}
+                    >
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Pay Now
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
