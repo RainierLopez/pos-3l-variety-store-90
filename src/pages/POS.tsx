@@ -17,10 +17,11 @@ const POS = () => {
   const { toast } = useToast();
 
   const products = [
-    { id: 1, name: "Product 1", price: 10 },
-    { id: 2, name: "Product 2", price: 20 },
-    { id: 3, name: "Product 3", price: 30 },
-    { id: 4, name: "Product 4", price: 40 },
+    { id: 1, name: "Liempo", price: 230 },
+    { id: 2, name: "Lechon Roll", price: 200 },
+    { id: 3, name: "Bacon", price: 215 },
+    { id: 4, name: "Chicken Drumsticks", price: 180 },
+    { id: 5, name: "Chicken Wings", price: 120 },
   ];
 
   const addToCart = (product: { id: number; name: string; price: number }) => {
