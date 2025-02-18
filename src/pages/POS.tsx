@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -48,7 +49,7 @@ const POS = () => {
     { id: 11, name: "Onion (Per kg)", price: 89.13, category: "vegetable" },
   ];
 
-  const addToCart = (product: { id: number; name: string; price: number }) => {
+  const addToCart = (product: { id: number; name: string; price: number; category: string }) => {
     setPaymentComplete(false);
     setSelectedPaymentMethod(null);
     setCart((currentCart) => {
@@ -156,8 +157,8 @@ const POS = () => {
     }
 
     toast({
-      title: "Payment successful",
-      description: `Total amount: ₱${total.toFixed(2)} paid via ${selectedPaymentMethod}`,
+      title: selectedPaymentMethod === "cash" ? "Initial Order Successful!" : "Payment successful",
+      description: `Total amount: ₱${total.toFixed(2)}`,
     });
     setPaymentComplete(true);
     setShowCardForm(false);
@@ -421,3 +422,4 @@ const POS = () => {
 };
 
 export default POS;
+
