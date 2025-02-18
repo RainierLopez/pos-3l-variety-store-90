@@ -32,9 +32,8 @@ const Index = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="glass-panel p-8 w-full max-w-md animate-in">
         <div className="space-y-6">
-          <div className="space-y-2 text-center">
-            <h1 className="text-3xl font-bold tracking-tight">Cashier Login</h1>
-            <p className="text-gray-500">Enter your credentials to continue</p>
+          <div className="text-center">
+            <h1 className="text-3xl font-bold tracking-tight text-[#8B4513]">Login</h1>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
@@ -65,7 +64,7 @@ const Index = () => {
                 required
               />
             </div>
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
+            <Button type="submit" className="w-full" style={{ backgroundColor: '#8B4513', color: 'white' }}>
               Login
             </Button>
           </form>

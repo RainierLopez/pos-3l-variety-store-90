@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -90,7 +89,7 @@ const POS = () => {
 
     toast({
       title: "Payment successful",
-      description: `Total amount: $${total.toFixed(2)} paid via ${selectedPaymentMethod}`,
+      description: `Total amount: ₱${total.toFixed(2)} paid via ${selectedPaymentMethod}`,
     });
     setPaymentComplete(true);
   };
@@ -128,7 +127,7 @@ const POS = () => {
                 className="p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 text-left"
               >
                 <h3 className="font-medium">{product.name}</h3>
-                <p className="text-primary">${product.price.toFixed(2)}</p>
+                <p className="text-[#8B4513]">₱{product.price.toFixed(2)}</p>
               </button>
             ))}
           </div>
@@ -146,7 +145,7 @@ const POS = () => {
                 <div className="flex-1">
                   <h3 className="font-medium">{item.name}</h3>
                   <p className="text-sm text-gray-500">
-                    ${item.price.toFixed(2)} × {item.quantity}
+                    ₱{item.price.toFixed(2)} × {item.quantity}
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -205,12 +204,13 @@ const POS = () => {
                   <div className="flex justify-between mb-4">
                     <span className="font-bold">Total:</span>
                     <span className="font-bold">
-                      ${total.toFixed(2)}
+                      ₱{total.toFixed(2)}
                     </span>
                   </div>
                   <Button
                     onClick={handlePayment}
-                    className="w-full bg-primary hover:bg-primary/90"
+                    className="w-full"
+                    style={{ backgroundColor: '#8B4513', color: 'white' }}
                   >
                     <CreditCard className="mr-2 h-4 w-4" />
                     Pay Now
@@ -223,7 +223,7 @@ const POS = () => {
               <div className="mt-4 space-y-4 animate-in">
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
                   <p className="font-medium">Payment Successful!</p>
-                  <p className="text-sm">Total paid: ${total.toFixed(2)}</p>
+                  <p className="text-sm">Total paid: ₱{total.toFixed(2)}</p>
                   <p className="text-sm">Method: {selectedPaymentMethod}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -237,7 +237,8 @@ const POS = () => {
                   </Button>
                   <Button
                     onClick={resetTransaction}
-                    className="w-full bg-primary hover:bg-primary/90"
+                    className="w-full"
+                    style={{ backgroundColor: '#8B4513', color: 'white' }}
                   >
                     New Transaction
                   </Button>
