@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { X, Plus, Minus, CreditCard, Printer, Wallet, DollarSign, QrCode } from "lucide-react";
+import { X, Plus, Minus, CreditCard, Printer, Wallet, DollarSign, QrCode, Database } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useNavigate } from "react-router-dom";
 
 interface Product {
   id: number;
   name: string;
   price: number;
   quantity: number;
+  category: string;
 }
 
 interface CardDetails {
@@ -23,19 +25,27 @@ const POS = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
   const [showCardForm, setShowCardForm] = useState(false);
   const [showEWalletForm, setShowEWalletForm] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("meat");
   const [cardDetails, setCardDetails] = useState<CardDetails>({
     cardNumber: "",
     expiryDate: "",
     cvv: "",
   });
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const products = [
-    { id: 1, name: "Liempo", price: 230 },
-    { id: 2, name: "Lechon Roll", price: 200 },
-    { id: 3, name: "Bacon", price: 215 },
-    { id: 4, name: "Chicken Drumsticks", price: 180 },
-    { id: 5, name: "Chicken Wings", price: 120 },
+    { id: 1, name: "Liempo (Per kg)", price: 230, category: "meat" },
+    { id: 2, name: "Lechon Roll (Per kg)", price: 200, category: "meat" },
+    { id: 3, name: "Bacon (Per kg)", price: 215, category: "meat" },
+    { id: 4, name: "Chicken Drumsticks (Per kg)", price: 180, category: "meat" },
+    { id: 5, name: "Chicken Wings (Per kg)", price: 120, category: "meat" },
+    { id: 6, name: "Eggplant (Per kg)", price: 40, category: "vegetable" },
+    { id: 7, name: "Carrots (Per kg)", price: 80, category: "vegetable" },
+    { id: 8, name: "Sayote (Per kg)", price: 50, category: "vegetable" },
+    { id: 9, name: "Potatoes (Per kg)", price: 80, category: "vegetable" },
+    { id: 10, name: "Garlic (Per kg)", price: 103.63, category: "vegetable" },
+    { id: 11, name: "Onion (Per kg)", price: 89.13, category: "vegetable" },
   ];
 
   const addToCart = (product: { id: number; name: string; price: number }) => {
@@ -82,6 +92,14 @@ const POS = () => {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
+
+  const viewTransactions = () => {
+    navigate("/transactions");
+    toast({
+      title: "Viewing Transactions",
+      description: "Loading transaction history...",
+    });
+  };
 
   const handlePaymentMethodSelect = (methodId: string) => {
     setSelectedPaymentMethod(methodId);
@@ -169,23 +187,53 @@ const POS = () => {
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="glass-panel p-6 animate-in">
-          <h2 className="text-2xl font-bold mb-4">Products</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {products.map((product) => (
-              <button
-                key={product.id}
-                onClick={() => addToCart(product)}
-                className="p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 text-left"
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold">Products</h2>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setSelectedCategory("meat")}
+                variant={selectedCategory === "meat" ? "default" : "outline"}
+                style={selectedCategory === "meat" ? { backgroundColor: '#8B4513', color: 'white' } : {}}
               >
-                <h3 className="font-medium">{product.name}</h3>
-                <p className="text-[#8B4513]">₱{product.price.toFixed(2)}</p>
-              </button>
-            ))}
+                Meat
+              </Button>
+              <Button
+                onClick={() => setSelectedCategory("vegetable")}
+                variant={selectedCategory === "vegetable" ? "default" : "outline"}
+                style={selectedCategory === "vegetable" ? { backgroundColor: '#8B4513', color: 'white' } : {}}
+              >
+                Vegetable
+              </Button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {products
+              .filter((product) => product.category === selectedCategory)
+              .map((product) => (
+                <button
+                  key={product.id}
+                  onClick={() => addToCart(product)}
+                  className="p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 text-left"
+                >
+                  <h3 className="font-medium">{product.name}</h3>
+                  <p className="text-[#8B4513]">₱{product.price.toFixed(2)}</p>
+                </button>
+              ))}
           </div>
         </div>
 
         <div className="glass-panel p-6 animate-in">
-          <h2 className="text-2xl font-bold mb-4">Cart</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold">Cart</h2>
+            <Button
+              onClick={viewTransactions}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Database className="h-4 w-4" />
+              View Transactions
+            </Button>
+          </div>
           <div className="space-y-4">
             {cart.map((item) => (
               <div
@@ -332,9 +380,19 @@ const POS = () => {
             {paymentComplete && (
               <div className="mt-4 space-y-4 animate-in">
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
-                  <p className="font-medium">Payment Successful!</p>
-                  <p className="text-sm">Total paid: ₱{total.toFixed(2)}</p>
-                  <p className="text-sm">Method: {selectedPaymentMethod}</p>
+                  {selectedPaymentMethod === "cash" ? (
+                    <>
+                      <p className="font-medium">Pending Payment</p>
+                      <p className="text-sm">Total Bill: ₱{total.toFixed(2)}</p>
+                      <p className="text-sm">Method: Cash</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-medium">Payment Successful!</p>
+                      <p className="text-sm">Total paid: ₱{total.toFixed(2)}</p>
+                      <p className="text-sm">Method: {selectedPaymentMethod}</p>
+                    </>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <Button
@@ -343,7 +401,7 @@ const POS = () => {
                     className="w-full"
                   >
                     <Printer className="mr-2 h-4 w-4" />
-                    Print Receipt
+                    {selectedPaymentMethod === "cash" ? "Print Initial Receipt" : "Print Receipt"}
                   </Button>
                   <Button
                     onClick={resetTransaction}
