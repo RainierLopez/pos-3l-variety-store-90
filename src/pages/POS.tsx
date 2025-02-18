@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { X, Plus, Minus, CreditCard, Printer } from "lucide-react";
+import { X, Plus, Minus, CreditCard, Printer, Wallet, DollarSign } from "lucide-react";
 
 interface Product {
   id: number;
@@ -13,6 +13,8 @@ interface Product {
 
 const POS = () => {
   const [cart, setCart] = useState<Product[]>([]);
+  const [paymentComplete, setPaymentComplete] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
   const { toast } = useToast();
 
   const products = [
@@ -23,6 +25,8 @@ const POS = () => {
   ];
 
   const addToCart = (product: { id: number; name: string; price: number }) => {
+    setPaymentComplete(false);
+    setSelectedPaymentMethod(null);
     setCart((currentCart) => {
       const existingProduct = currentCart.find((item) => item.id === product.id);
       if (existingProduct) {
@@ -37,12 +41,16 @@ const POS = () => {
   };
 
   const removeFromCart = (productId: number) => {
+    setPaymentComplete(false);
+    setSelectedPaymentMethod(null);
     setCart((currentCart) =>
       currentCart.filter((item) => item.id !== productId)
     );
   };
 
   const updateQuantity = (productId: number, change: number) => {
+    setPaymentComplete(false);
+    setSelectedPaymentMethod(null);
     setCart((currentCart) =>
       currentCart.map((item) => {
         if (item.id === productId) {
@@ -62,6 +70,15 @@ const POS = () => {
   );
 
   const handlePayment = () => {
+    if (!selectedPaymentMethod) {
+      toast({
+        title: "Payment method required",
+        description: "Please select a payment method before proceeding.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (cart.length === 0) {
       toast({
         title: "Cart is empty",
@@ -73,25 +90,28 @@ const POS = () => {
 
     toast({
       title: "Payment successful",
-      description: `Total amount: $${total.toFixed(2)}`,
+      description: `Total amount: $${total.toFixed(2)} paid via ${selectedPaymentMethod}`,
     });
-    setCart([]);
+    setPaymentComplete(true);
   };
 
   const printReceipt = () => {
-    if (cart.length === 0) {
-      toast({
-        title: "No items to print",
-        description: "Please add items to the cart first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     toast({
       title: "Receipt printed",
       description: "The receipt has been sent to the printer.",
     });
+  };
+
+  const paymentMethods = [
+    { id: "cash", name: "Cash", icon: <DollarSign className="h-4 w-4" /> },
+    { id: "card", name: "Card", icon: <CreditCard className="h-4 w-4" /> },
+    { id: "wallet", name: "E-Wallet", icon: <Wallet className="h-4 w-4" /> },
+  ];
+
+  const resetTransaction = () => {
+    setCart([]);
+    setPaymentComplete(false);
+    setSelectedPaymentMethod(null);
   };
 
   return (
@@ -162,31 +182,68 @@ const POS = () => {
               </div>
             )}
 
-            <div className="mt-4 pt-4 border-t">
-              <div className="flex justify-between mb-4">
-                <span className="font-bold">Total:</span>
-                <span className="font-bold">
-                  ${total.toFixed(2)}
-                </span>
+            {cart.length > 0 && !paymentComplete && (
+              <div className="mt-4 space-y-4">
+                <div className="border-t pt-4">
+                  <h3 className="font-medium mb-2">Select Payment Method</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {paymentMethods.map((method) => (
+                      <Button
+                        key={method.id}
+                        variant={selectedPaymentMethod === method.id ? "default" : "outline"}
+                        className="w-full"
+                        onClick={() => setSelectedPaymentMethod(method.id)}
+                      >
+                        {method.icon}
+                        {method.name}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="border-t pt-4">
+                  <div className="flex justify-between mb-4">
+                    <span className="font-bold">Total:</span>
+                    <span className="font-bold">
+                      ${total.toFixed(2)}
+                    </span>
+                  </div>
+                  <Button
+                    onClick={handlePayment}
+                    className="w-full bg-primary hover:bg-primary/90"
+                  >
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Pay Now
+                  </Button>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Button
-                  onClick={handlePayment}
-                  className="w-full bg-primary hover:bg-primary/90"
-                >
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Pay Now
-                </Button>
-                <Button
-                  onClick={printReceipt}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <Printer className="mr-2 h-4 w-4" />
-                  Print Receipt
-                </Button>
+            )}
+
+            {paymentComplete && (
+              <div className="mt-4 space-y-4 animate-in">
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
+                  <p className="font-medium">Payment Successful!</p>
+                  <p className="text-sm">Total paid: ${total.toFixed(2)}</p>
+                  <p className="text-sm">Method: {selectedPaymentMethod}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <Button
+                    onClick={printReceipt}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Printer className="mr-2 h-4 w-4" />
+                    Print Receipt
+                  </Button>
+                  <Button
+                    onClick={resetTransaction}
+                    className="w-full bg-primary hover:bg-primary/90"
+                  >
+                    New Transaction
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
