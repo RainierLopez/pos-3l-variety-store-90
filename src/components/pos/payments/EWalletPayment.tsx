@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { QrCode } from "lucide-react";
 
@@ -7,10 +8,32 @@ interface EWalletPaymentProps {
 }
 
 export const EWalletPayment = ({ onFileUpload }: EWalletPaymentProps) => {
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPreviewImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+    onFileUpload(e);
+  };
+
   return (
     <div className="space-y-4 animate-in">
       <div className="bg-white p-4 rounded-lg text-center">
-        <QrCode className="mx-auto h-32 w-32 text-[#8B4513]" />
+        {previewImage ? (
+          <img 
+            src={previewImage} 
+            alt="Uploaded QR" 
+            className="mx-auto h-32 w-32 object-contain"
+          />
+        ) : (
+          <QrCode className="mx-auto h-32 w-32 text-[#8B4513]" />
+        )}
         <p className="mt-2 text-sm text-gray-600">
           Take a Screenshot and Attach it below
         </p>
@@ -21,9 +44,8 @@ export const EWalletPayment = ({ onFileUpload }: EWalletPaymentProps) => {
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={onFileUpload}
+            onChange={handleFileChange}
             onClick={(e) => {
-              // Reset the value to allow selecting the same file again
               (e.target as HTMLInputElement).value = '';
             }}
           />
@@ -31,7 +53,7 @@ export const EWalletPayment = ({ onFileUpload }: EWalletPaymentProps) => {
             className="w-full"
             style={{ backgroundColor: '#8B4513', color: 'white' }}
           >
-            Attach here!
+            {previewImage ? 'Change Image' : 'Attach here!'}
           </Button>
         </label>
       </div>

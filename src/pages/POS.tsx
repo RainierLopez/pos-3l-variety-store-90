@@ -113,29 +113,76 @@ const POS = () => {
       const reader = new FileReader();
       reader.onload = () => {
         const imageData = reader.result as string;
-        const transaction = {
-          ...currentTransactionForReceipt,
+        
+        const newTransaction = {
+          id: (JSON.parse(localStorage.getItem('transactions') || '[]').length + 1).toString(),
+          timestamp: new Date().toISOString(),
+          total: total,
+          status: "pending" as const,
+          paymentMethod: "wallet" as const,
+          items: cart.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price
+          })),
           ewalletReceipt: imageData
         };
-        
+
         const existingTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
-        const updatedTransactions = existingTransactions.map((t: any) => 
-          t.id === transaction.id ? transaction : t
-        );
+        existingTransactions.push(newTransaction);
+        localStorage.setItem('transactions', JSON.stringify(existingTransactions));
         
-        localStorage.setItem('transactions', JSON.stringify(updatedTransactions));
+        setCurrentTransactionForReceipt(newTransaction);
         
         toast({
           title: "QR Code received",
           description: "Processing your payment...",
         });
-        setTimeout(handlePayment, 2000);
+        setTimeout(() => {
+          setPaymentComplete(true);
+          setShowEWalletForm(false);
+        }, 2000);
       };
       reader.readAsDataURL(file);
     }
   };
 
   const handlePrintReceipt = (transaction: any) => {
+    const printContent = `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2 style="text-align: center;">Transaction Receipt</h2>
+        <p><strong>Order #${transaction.id}</strong></p>
+        <p><strong>Date:</strong> ${new Date(transaction.timestamp).toLocaleString()}</p>
+        <p><strong>Payment Method:</strong> ${transaction.paymentMethod}</p>
+        <hr/>
+        ${transaction.items.map((item: any) => `
+          <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+            <span>${item.name} x ${item.quantity}</span>
+            <span>₱${(item.price * item.quantity).toFixed(2)}</span>
+          </div>
+        `).join('')}
+        <hr/>
+        <div style="display: flex; justify-content: space-between; margin-top: 10px;">
+          <strong>Total:</strong>
+          <strong>₱${transaction.total.toFixed(2)}</strong>
+        </div>
+        ${transaction.ewalletReceipt ? `
+          <div style="margin-top: 20px; text-align: center;">
+            <p><strong>E-Wallet Receipt:</strong></p>
+            <img src="${transaction.ewalletReceipt}" style="max-width: 200px; margin-top: 10px;"/>
+          </div>
+        ` : ''}
+      </div>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+      printWindow.close();
+    }
+
     setCurrentTransactionForReceipt(transaction);
     setShowPhoneDialog(true);
   };
@@ -150,7 +197,6 @@ const POS = () => {
       return;
     }
 
-    // Update transaction with phone number
     const existingTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
     const updatedTransactions = existingTransactions.map((t: any) => 
       t.id === currentTransactionForReceipt.id 
