@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -146,14 +145,48 @@ const POS = () => {
       return;
     }
 
+    if (selectedPaymentMethod === "card") {
+      if (!cardDetails.cardNumber || !cardDetails.expiryDate || !cardDetails.cvv) {
+        toast({
+          title: "Invalid card details",
+          description: "Please enter valid card information.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const expiryRegex = /^(0[1-9]|1[0-2])\/([0-9]{2})$/;
+      if (!expiryRegex.test(cardDetails.expiryDate)) {
+        toast({
+          title: "Invalid expiry date",
+          description: "Please enter a valid expiry date in MM/YY format.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const expiryDate = new Date(2000 + parseInt(cardDetails.expiryDate.split('/')[1]), parseInt(cardDetails.expiryDate.split('/')[0]) - 1);
+      if (expiryDate < new Date()) {
+        toast({
+          title: "Card expired",
+          description: "Please use a valid, non-expired card.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     const calculatedTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
+    const existingTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
+    const nextOrderNumber = (existingTransactions.length + 1).toString();
+
     const transaction = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: nextOrderNumber,
       timestamp: new Date().toISOString(),
       total: calculatedTotal,
-      status: selectedPaymentMethod === "cash" ? "pending" : "completed",
-      paymentMethod: selectedPaymentMethod,
+      status: "pending" as const,
+      paymentMethod: selectedPaymentMethod as "cash" | "card" | "wallet",
       items: cart.map(item => ({
         name: item.name,
         quantity: item.quantity,
@@ -167,13 +200,12 @@ const POS = () => {
       })
     };
 
-    const transactions = JSON.parse(localStorage.getItem('transactions') || '[]');
-    transactions.push(transaction);
-    localStorage.setItem('transactions', JSON.stringify(transactions));
+    existingTransactions.push(transaction);
+    localStorage.setItem('transactions', JSON.stringify(existingTransactions));
 
     toast({
-      title: selectedPaymentMethod === "cash" ? "Initial Order Successful!" : "Payment successful",
-      description: `Total amount: ₱${calculatedTotal.toFixed(2)}`,
+      title: "Order Created Successfully",
+      description: `Order #${nextOrderNumber} is now pending. Total amount: ₱${calculatedTotal.toFixed(2)}`,
     });
     setPaymentComplete(true);
     setShowCardForm(false);

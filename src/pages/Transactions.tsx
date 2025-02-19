@@ -22,7 +22,14 @@ const Transactions = () => {
   useEffect(() => {
     const storedTransactions = localStorage.getItem('transactions');
     if (storedTransactions) {
-      setTransactions(JSON.parse(storedTransactions));
+      const parsedTransactions = JSON.parse(storedTransactions);
+      // Transform stored transactions to ensure they match the Transaction type
+      const validatedTransactions = parsedTransactions.map((t: any, index: number) => ({
+        ...t,
+        id: (index + 1).toString(), // Set order number sequentially
+        status: t.status as "pending" | "completed" | "cancelled"
+      }));
+      setTransactions(validatedTransactions);
     }
   }, []);
 
@@ -50,7 +57,7 @@ const Transactions = () => {
       if (t.id === selectedTransaction.id) {
         return {
           ...t,
-          status: action === 'complete' ? 'completed' : 'cancelled'
+          status: action === 'complete' ? 'completed' as const : 'cancelled' as const
         };
       }
       return t;
@@ -76,7 +83,7 @@ const Transactions = () => {
       case 'cash':
         return 'Cash';
       default:
-        return method;
+        return 'Invalid Payment Method';
     }
   };
 
@@ -94,7 +101,7 @@ const Transactions = () => {
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
-          <h1 className="text-2xl font-bold">Transactions</h1>
+          <h1 className="text-2xl font-bold">Transaction Records</h1>
         </div>
 
         {transactions.length === 0 ? (
