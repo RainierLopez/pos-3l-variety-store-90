@@ -1,8 +1,8 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { CreditCard, Printer, Wallet, DollarSign, Database, QrCode } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { CreditCard, Printer, Wallet, DollarSign, Database } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ProductCatalog } from "@/components/pos/ProductCatalog";
 import { CartItem } from "@/components/pos/CartItem";
@@ -25,18 +25,18 @@ const POS = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const products = [
-    { id: 1, name: "Liempo (Per kg)", price: 230, category: "meat" },
-    { id: 2, name: "Lechon Roll (Per kg)", price: 200, category: "meat" },
-    { id: 3, name: "Bacon (Per kg)", price: 215, category: "meat" },
-    { id: 4, name: "Chicken Drumsticks (Per kg)", price: 180, category: "meat" },
-    { id: 5, name: "Chicken Wings (Per kg)", price: 120, category: "meat" },
-    { id: 6, name: "Eggplant (Per kg)", price: 40, category: "vegetable" },
-    { id: 7, name: "Carrots (Per kg)", price: 80, category: "vegetable" },
-    { id: 8, name: "Sayote (Per kg)", price: 50, category: "vegetable" },
-    { id: 9, name: "Potatoes (Per kg)", price: 80, category: "vegetable" },
-    { id: 10, name: "Garlic (Per kg)", price: 103.63, category: "vegetable" },
-    { id: 11, name: "Onion (Per kg)", price: 89.13, category: "vegetable" },
+  const products: Product[] = [
+    { id: 1, name: "Liempo (Per kg)", price: 230, quantity: 0, category: "meat" },
+    { id: 2, name: "Lechon Roll (Per kg)", price: 200, quantity: 0, category: "meat" },
+    { id: 3, name: "Bacon (Per kg)", price: 215, quantity: 0, category: "meat" },
+    { id: 4, name: "Chicken Drumsticks (Per kg)", price: 180, quantity: 0, category: "meat" },
+    { id: 5, name: "Chicken Wings (Per kg)", price: 120, quantity: 0, category: "meat" },
+    { id: 6, name: "Eggplant (Per kg)", price: 40, quantity: 0, category: "vegetable" },
+    { id: 7, name: "Carrots (Per kg)", price: 80, quantity: 0, category: "vegetable" },
+    { id: 8, name: "Sayote (Per kg)", price: 50, quantity: 0, category: "vegetable" },
+    { id: 9, name: "Potatoes (Per kg)", price: 80, quantity: 0, category: "vegetable" },
+    { id: 10, name: "Garlic (Per kg)", price: 103.63, quantity: 0, category: "vegetable" },
+    { id: 11, name: "Onion (Per kg)", price: 89.13, quantity: 0, category: "vegetable" },
   ];
 
   const addToCart = (product: Product) => {
@@ -67,7 +67,7 @@ const POS = () => {
             : item;
         }
         return item;
-      })
+      }).filter(item => item.quantity > 0)
     );
   };
 
@@ -83,14 +83,6 @@ const POS = () => {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-
-  const viewTransactions = () => {
-    navigate("/transactions");
-    toast({
-      title: "Viewing Transactions",
-      description: "Loading transaction history...",
-    });
-  };
 
   const handlePaymentMethodSelect = (methodId: string) => {
     setSelectedPaymentMethod(methodId);
@@ -108,11 +100,17 @@ const POS = () => {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
-      toast({
-        title: "QR Code received",
-        description: "Processing your payment...",
-      });
-      setTimeout(handlePayment, 2000);
+      const reader = new FileReader();
+      reader.onload = () => {
+        const imageData = reader.result as string;
+        localStorage.setItem(`receipt-${Date.now()}`, imageData);
+        toast({
+          title: "QR Code received",
+          description: "Processing your payment...",
+        });
+        setTimeout(handlePayment, 2000);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -182,10 +180,18 @@ const POS = () => {
     setShowEWalletForm(false);
   };
 
-  const printReceipt = () => {
-    toast({
-      title: "Receipt printed",
-      description: "The receipt has been sent to the printer.",
+  const viewTransactions = () => {
+    navigate("/transactions");
+  };
+
+  const resetTransaction = () => {
+    setCart([]);
+    setPaymentComplete(false);
+    setSelectedPaymentMethod(null);
+    setCardDetails({
+      cardNumber: "",
+      expiryDate: "",
+      cvv: "",
     });
   };
 
@@ -194,12 +200,6 @@ const POS = () => {
     { id: "card", name: "Card", icon: <CreditCard className="h-4 w-4" /> },
     { id: "wallet", name: "E-Wallet", icon: <Wallet className="h-4 w-4" /> },
   ];
-
-  const resetTransaction = () => {
-    setCart([]);
-    setPaymentComplete(false);
-    setSelectedPaymentMethod(null);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -314,7 +314,12 @@ const POS = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <Button
-                    onClick={printReceipt}
+                    onClick={() => {
+                      toast({
+                        title: "Receipt printed",
+                        description: "The receipt has been sent to the printer.",
+                      });
+                    }}
                     variant="outline"
                     className="w-full"
                   >
