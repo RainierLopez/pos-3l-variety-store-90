@@ -16,3 +16,22 @@ export interface CardDetails {
 export interface CartItem extends Product {
   quantity: number;
 }
+
+export interface Transaction {
+  id: string;
+  timestamp: string;
+  total: number;
+  status: "pending" | "completed" | "cancelled";
+  paymentMethod: "cash" | "card" | "wallet";
+  items: {
+    name: string;
+    quantity: number;
+    price: number;
+  }[];
+  customerContact?: string;
+  cardDetails?: {
+    cardNumber: string;
+    expiryDate: string;
+  };
+  ewalletReceipt?: string;
+}

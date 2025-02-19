@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Phone, Check, X, Eye } from "lucide-react";
@@ -10,44 +11,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-interface Transaction {
-  id: string;
-  timestamp: string;
-  total: number;
-  status: "pending" | "completed" | "cancelled";
-  paymentMethod: string;
-  items: {
-    name: string;
-    quantity: number;
-    price: number;
-  }[];
-  customerContact?: string;
-  cardDetails?: {
-    cardNumber: string;
-    expiryDate: string;
-  };
-}
+import { Transaction } from "@/types/pos";
 
 const Transactions = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: "1",
-      timestamp: new Date().toISOString(),
-      total: 535.00,
-      status: "pending",
-      paymentMethod: "cash",
-      customerContact: "+63 912 345 6789",
-      items: [
-        { name: "Liempo (Per kg)", quantity: 2, price: 230 },
-        { name: "Carrots (Per kg)", quantity: 1, price: 75 },
-      ],
-    },
-    // Add more mock transactions as needed
-  ]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  useEffect(() => {
+    const storedTransactions = localStorage.getItem('transactions');
+    if (storedTransactions) {
+      setTransactions(JSON.parse(storedTransactions));
+    }
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -69,9 +46,18 @@ const Transactions = () => {
   const handleOrderAction = (action: 'complete' | 'cancel') => {
     if (!selectedTransaction) return;
 
-    setTransactions(current => 
-      current.filter(t => t.id !== selectedTransaction.id)
-    );
+    const updatedTransactions = transactions.map(t => {
+      if (t.id === selectedTransaction.id) {
+        return {
+          ...t,
+          status: action === 'complete' ? 'completed' : 'cancelled'
+        };
+      }
+      return t;
+    });
+
+    setTransactions(updatedTransactions);
+    localStorage.setItem('transactions', JSON.stringify(updatedTransactions));
 
     toast({
       title: action === 'complete' ? "Order Completed" : "Order Cancelled",
@@ -79,6 +65,19 @@ const Transactions = () => {
     });
 
     setSelectedTransaction(null);
+  };
+
+  const formatPaymentMethod = (method: string) => {
+    switch (method) {
+      case 'card':
+        return 'Card Payment';
+      case 'wallet':
+        return 'E-wallet';
+      case 'cash':
+        return 'Cash';
+      default:
+        return method;
+    }
   };
 
   const pendingTransactions = transactions.filter(t => t.status === "pending");
@@ -98,13 +97,13 @@ const Transactions = () => {
           <h1 className="text-2xl font-bold">Transactions</h1>
         </div>
 
-        {pendingTransactions.length === 0 ? (
+        {transactions.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No pending transactions</p>
+            <p className="text-gray-500 text-lg">No transactions found</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {pendingTransactions.map((transaction) => (
+            {transactions.map((transaction) => (
               <div
                 key={transaction.id}
                 className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 p-4 border border-gray-100"
@@ -123,7 +122,7 @@ const Transactions = () => {
                 </div>
                 <div className="mb-3">
                   <p className="font-medium text-lg text-[#8B4513]">₱{transaction.total.toFixed(2)}</p>
-                  <p className="text-sm text-gray-500 capitalize">{transaction.paymentMethod}</p>
+                  <p className="text-sm text-gray-500">{formatPaymentMethod(transaction.paymentMethod)}</p>
                 </div>
                 <div className="flex justify-between items-center gap-2">
                   <Button
@@ -182,11 +181,21 @@ const Transactions = () => {
                   <span className="text-[#8B4513]">₱{selectedTransaction?.total.toFixed(2)}</span>
                 </div>
                 <div className="text-sm text-gray-500 mt-1">
-                  <p>Payment Method: {selectedTransaction?.paymentMethod}</p>
+                  <p>Payment Method: {selectedTransaction && formatPaymentMethod(selectedTransaction.paymentMethod)}</p>
                   {selectedTransaction?.cardDetails && (
                     <div className="mt-1">
                       <p>Card ending in: {selectedTransaction.cardDetails.cardNumber}</p>
                       <p>Expires: {selectedTransaction.cardDetails.expiryDate}</p>
+                    </div>
+                  )}
+                  {selectedTransaction?.ewalletReceipt && (
+                    <div className="mt-2">
+                      <p className="mb-1">E-wallet Receipt:</p>
+                      <img 
+                        src={selectedTransaction.ewalletReceipt} 
+                        alt="E-wallet receipt" 
+                        className="w-full rounded-lg border border-gray-200"
+                      />
                     </div>
                   )}
                 </div>
