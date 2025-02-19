@@ -1,23 +1,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { X, Plus, Minus, CreditCard, Printer, Wallet, DollarSign, QrCode, Database } from "lucide-react";
+import { CreditCard, Printer, Wallet, DollarSign, Database, QrCode } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  quantity: number;
-  category: string;
-}
-
-interface CardDetails {
-  cardNumber: string;
-  expiryDate: string;
-  cvv: string;
-}
+import { ProductCatalog } from "@/components/pos/ProductCatalog";
+import { CartItem } from "@/components/pos/CartItem";
+import { CardPayment } from "@/components/pos/payments/CardPayment";
+import { EWalletPayment } from "@/components/pos/payments/EWalletPayment";
+import { Product, CardDetails } from "@/types/pos";
 
 const POS = () => {
   const [cart, setCart] = useState<Product[]>([]);
@@ -48,7 +39,7 @@ const POS = () => {
     { id: 11, name: "Onion (Per kg)", price: 89.13, category: "vegetable" },
   ];
 
-  const addToCart = (product: { id: number; name: string; price: number; category: string }) => {
+  const addToCart = (product: Product) => {
     setPaymentComplete(false);
     setSelectedPaymentMethod(null);
     setCart((currentCart) => {
@@ -64,14 +55,6 @@ const POS = () => {
     });
   };
 
-  const removeFromCart = (productId: number) => {
-    setPaymentComplete(false);
-    setSelectedPaymentMethod(null);
-    setCart((currentCart) =>
-      currentCart.filter((item) => item.id !== productId)
-    );
-  };
-
   const updateQuantity = (productId: number, change: number) => {
     setPaymentComplete(false);
     setSelectedPaymentMethod(null);
@@ -85,6 +68,14 @@ const POS = () => {
         }
         return item;
       })
+    );
+  };
+
+  const removeFromCart = (productId: number) => {
+    setPaymentComplete(false);
+    setSelectedPaymentMethod(null);
+    setCart((currentCart) =>
+      currentCart.filter((item) => item.id !== productId)
     );
   };
 
@@ -213,41 +204,12 @@ const POS = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="glass-panel p-6 animate-in">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold">Products</h2>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => setSelectedCategory("meat")}
-                variant={selectedCategory === "meat" ? "default" : "outline"}
-                style={selectedCategory === "meat" ? { backgroundColor: '#8B4513', color: 'white' } : {}}
-              >
-                Meat
-              </Button>
-              <Button
-                onClick={() => setSelectedCategory("vegetable")}
-                variant={selectedCategory === "vegetable" ? "default" : "outline"}
-                style={selectedCategory === "vegetable" ? { backgroundColor: '#8B4513', color: 'white' } : {}}
-              >
-                Vegetable
-              </Button>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {products
-              .filter((product) => product.category === selectedCategory)
-              .map((product) => (
-                <button
-                  key={product.id}
-                  onClick={() => addToCart(product)}
-                  className="p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 text-left"
-                >
-                  <h3 className="font-medium">{product.name}</h3>
-                  <p className="text-[#8B4513]">₱{product.price.toFixed(2)}</p>
-                </button>
-              ))}
-          </div>
-        </div>
+        <ProductCatalog
+          products={products}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          onAddToCart={addToCart}
+        />
 
         <div className="glass-panel p-6 animate-in">
           <div className="flex justify-between items-center mb-4">
@@ -261,43 +223,15 @@ const POS = () => {
               View Transactions
             </Button>
           </div>
+
           <div className="space-y-4">
             {cart.map((item) => (
-              <div
+              <CartItem
                 key={item.id}
-                className="flex items-center justify-between bg-white p-4 rounded-lg"
-              >
-                <div className="flex-1">
-                  <h3 className="font-medium">{item.name}</h3>
-                  <p className="text-sm text-gray-500">
-                    ₱{item.price.toFixed(2)} × {item.quantity}
-                  </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => updateQuantity(item.id, -1)}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <span className="w-8 text-center">{item.quantity}</span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => updateQuantity(item.id, 1)}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    onClick={() => removeFromCart(item.id)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+                item={item}
+                onUpdateQuantity={updateQuantity}
+                onRemove={removeFromCart}
+              />
             ))}
 
             {cart.length === 0 && (
@@ -327,61 +261,17 @@ const POS = () => {
                 </div>
 
                 {showCardForm && (
-                  <form onSubmit={handleCardSubmit} className="space-y-4 animate-in">
-                    <Input
-                      type="text"
-                      placeholder="Card Number"
-                      value={cardDetails.cardNumber}
-                      onChange={(e) => setCardDetails({ ...cardDetails, cardNumber: e.target.value })}
-                      required
-                    />
-                    <div className="grid grid-cols-2 gap-4">
-                      <Input
-                        type="text"
-                        placeholder="MM/YY"
-                        value={cardDetails.expiryDate}
-                        onChange={(e) => setCardDetails({ ...cardDetails, expiryDate: e.target.value })}
-                        required
-                      />
-                      <Input
-                        type="text"
-                        placeholder="CVV"
-                        value={cardDetails.cvv}
-                        onChange={(e) => setCardDetails({ ...cardDetails, cvv: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      style={{ backgroundColor: '#8B4513', color: 'white' }}
-                    >
-                      Process Card Payment
-                    </Button>
-                  </form>
+                  <CardPayment
+                    cardDetails={cardDetails}
+                    onCardDetailsChange={setCardDetails}
+                    onSubmit={handleCardSubmit}
+                  />
                 )}
 
                 {showEWalletForm && (
-                  <div className="space-y-4 animate-in">
-                    <div className="bg-white p-4 rounded-lg text-center">
-                      <QrCode className="mx-auto h-32 w-32 text-[#8B4513]" />
-                      <p className="mt-2 text-sm text-gray-600">Take a Screenshot and Attach it below</p>
-                    </div>
-                    <label className="cursor-pointer">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleFileUpload}
-                      />
-                      <Button
-                        className="w-full"
-                        style={{ backgroundColor: '#8B4513', color: 'white' }}
-                      >
-                        Attach here!
-                      </Button>
-                    </label>
-                  </div>
+                  <EWalletPayment
+                    onFileUpload={handleFileUpload}
+                  />
                 )}
                 
                 <div className="border-t pt-4">
