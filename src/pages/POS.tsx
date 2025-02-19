@@ -8,6 +8,13 @@ import { CartItem } from "@/components/pos/CartItem";
 import { CardPayment } from "@/components/pos/payments/CardPayment";
 import { EWalletPayment } from "@/components/pos/payments/EWalletPayment";
 import { Product, CardDetails } from "@/types/pos";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const POS = () => {
   const [cart, setCart] = useState<Product[]>([]);
@@ -96,13 +103,28 @@ const POS = () => {
     }
   };
 
+  const [showPhoneDialog, setShowPhoneDialog] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [currentTransactionForReceipt, setCurrentTransactionForReceipt] = useState<any>(null);
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = () => {
         const imageData = reader.result as string;
-        localStorage.setItem(`receipt-${Date.now()}`, imageData);
+        const transaction = {
+          ...currentTransactionForReceipt,
+          ewalletReceipt: imageData
+        };
+        
+        const existingTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
+        const updatedTransactions = existingTransactions.map((t: any) => 
+          t.id === transaction.id ? transaction : t
+        );
+        
+        localStorage.setItem('transactions', JSON.stringify(updatedTransactions));
+        
         toast({
           title: "QR Code received",
           description: "Processing your payment...",
@@ -111,6 +133,40 @@ const POS = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handlePrintReceipt = (transaction: any) => {
+    setCurrentTransactionForReceipt(transaction);
+    setShowPhoneDialog(true);
+  };
+
+  const handleSendReceipt = () => {
+    if (!phoneNumber.match(/^\d{11}$/)) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid 11-digit phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Update transaction with phone number
+    const existingTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
+    const updatedTransactions = existingTransactions.map((t: any) => 
+      t.id === currentTransactionForReceipt.id 
+        ? { ...t, customerContact: phoneNumber }
+        : t
+    );
+    localStorage.setItem('transactions', JSON.stringify(updatedTransactions));
+
+    toast({
+      title: "Receipt sent",
+      description: `Receipt has been sent to ${phoneNumber}`,
+    });
+
+    setShowPhoneDialog(false);
+    setPhoneNumber("");
+    setCurrentTransactionForReceipt(null);
   };
 
   const handleCardSubmit = (e: React.FormEvent) => {
@@ -235,6 +291,40 @@ const POS = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
+      
+      <Dialog open={showPhoneDialog} onOpenChange={setShowPhoneDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enter Phone Number</DialogTitle>
+            <DialogDescription>
+              Please enter the phone number to send the receipt
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="phone" className="text-sm font-medium">
+                Phone Number
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="Enter 11-digit number"
+                className="border rounded-md px-3 py-2"
+              />
+            </div>
+            <Button
+              onClick={handleSendReceipt}
+              className="w-full"
+              style={{ backgroundColor: '#8B4513', color: 'white' }}
+            >
+              Send Receipt
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
         <ProductCatalog
           products={products}
@@ -346,12 +436,7 @@ const POS = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <Button
-                    onClick={() => {
-                      toast({
-                        title: "Receipt printed",
-                        description: "The receipt has been sent to the printer.",
-                      });
-                    }}
+                    onClick={() => handlePrintReceipt(transaction)}
                     variant="outline"
                     className="w-full"
                   >

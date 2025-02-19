@@ -15,20 +15,26 @@ export const EWalletPayment = ({ onFileUpload }: EWalletPaymentProps) => {
           Take a Screenshot and Attach it below
         </p>
       </div>
-      <label className="cursor-pointer">
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={onFileUpload}
-        />
-        <Button
-          className="w-full"
-          style={{ backgroundColor: '#8B4513', color: 'white' }}
-        >
-          Attach here!
-        </Button>
-      </label>
+      <div className="flex flex-col gap-2">
+        <label className="cursor-pointer">
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onFileUpload}
+            onClick={(e) => {
+              // Reset the value to allow selecting the same file again
+              (e.target as HTMLInputElement).value = '';
+            }}
+          />
+          <Button
+            className="w-full"
+            style={{ backgroundColor: '#8B4513', color: 'white' }}
+          >
+            Attach here!
+          </Button>
+        </label>
+      </div>
     </div>
   );
 };
