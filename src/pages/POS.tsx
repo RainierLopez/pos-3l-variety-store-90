@@ -195,7 +195,7 @@ const POS = () => {
     if (cart.length === 0) {
       toast({
         title: "Cart is empty",
-        description: "Please add items to the cart before proceeding to payment.",
+        description: "Please add items to the cart before proceeding.",
         variant: "destructive",
       });
       return;
@@ -237,7 +237,7 @@ const POS = () => {
     const existingTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
     const nextOrderNumber = (existingTransactions.length + 1).toString();
 
-    const transaction = {
+    const newTransaction = {
       id: nextOrderNumber,
       timestamp: new Date().toISOString(),
       total: calculatedTotal,
@@ -256,8 +256,10 @@ const POS = () => {
       })
     };
 
-    existingTransactions.push(transaction);
+    existingTransactions.push(newTransaction);
     localStorage.setItem('transactions', JSON.stringify(existingTransactions));
+
+    setCurrentTransactionForReceipt(newTransaction);
 
     toast({
       title: "Order Created Successfully",
@@ -436,7 +438,7 @@ const POS = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <Button
-                    onClick={() => handlePrintReceipt(transaction)}
+                    onClick={() => handlePrintReceipt(currentTransactionForReceipt)}
                     variant="outline"
                     className="w-full"
                   >
