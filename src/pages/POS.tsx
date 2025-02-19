@@ -114,10 +114,14 @@ const POS = () => {
       reader.onload = () => {
         const imageData = reader.result as string;
         
+        const calculatedTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const existingTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
+        const nextOrderNumber = (existingTransactions.length + 1).toString();
+
         const newTransaction = {
-          id: (JSON.parse(localStorage.getItem('transactions') || '[]').length + 1).toString(),
+          id: nextOrderNumber,
           timestamp: new Date().toISOString(),
-          total: total,
+          total: calculatedTotal,
           status: "pending" as const,
           paymentMethod: "wallet" as const,
           items: cart.map(item => ({
@@ -128,7 +132,6 @@ const POS = () => {
           ewalletReceipt: imageData
         };
 
-        const existingTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
         existingTransactions.push(newTransaction);
         localStorage.setItem('transactions', JSON.stringify(existingTransactions));
         
@@ -138,6 +141,7 @@ const POS = () => {
           title: "QR Code received",
           description: "Processing your payment...",
         });
+        
         setTimeout(() => {
           setPaymentComplete(true);
           setShowEWalletForm(false);

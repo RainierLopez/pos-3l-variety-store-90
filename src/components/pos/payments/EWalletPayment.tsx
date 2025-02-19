@@ -18,8 +18,8 @@ export const EWalletPayment = ({ onFileUpload }: EWalletPaymentProps) => {
         setPreviewImage(reader.result as string);
       };
       reader.readAsDataURL(file);
+      onFileUpload(e);
     }
-    onFileUpload(e);
   };
 
   return (
@@ -39,23 +39,23 @@ export const EWalletPayment = ({ onFileUpload }: EWalletPaymentProps) => {
         </p>
       </div>
       <div className="flex flex-col gap-2">
-        <label className="cursor-pointer">
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileChange}
-            onClick={(e) => {
-              (e.target as HTMLInputElement).value = '';
-            }}
-          />
-          <Button
-            className="w-full"
-            style={{ backgroundColor: '#8B4513', color: 'white' }}
-          >
-            {previewImage ? 'Change Image' : 'Attach here!'}
-          </Button>
-        </label>
+        <Button
+          onClick={() => document.getElementById('file-upload')?.click()}
+          className="w-full"
+          style={{ backgroundColor: '#8B4513', color: 'white' }}
+        >
+          {previewImage ? 'Change Image' : 'Attach here!'}
+        </Button>
+        <input
+          id="file-upload"
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileChange}
+          onClick={(e) => {
+            (e.target as HTMLInputElement).value = '';
+          }}
+        />
       </div>
     </div>
   );
