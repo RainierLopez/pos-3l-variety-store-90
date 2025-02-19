@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -124,11 +123,9 @@ const POS = () => {
     handlePayment();
   };
 
-  const handleImagePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
-    const items = e.clipboardData?.items;
-    const item = items?.[0];
-
-    if (item?.type.indexOf("image") === 0) {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
       toast({
         title: "QR Code received",
         description: "Processing your payment...",
@@ -155,6 +152,29 @@ const POS = () => {
       });
       return;
     }
+
+    const transaction = {
+      id: Math.random().toString(36).substr(2, 9),
+      timestamp: new Date().toISOString(),
+      total: total,
+      status: selectedPaymentMethod === "cash" ? "pending" : "completed",
+      paymentMethod: selectedPaymentMethod,
+      items: cart.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price
+      })),
+      ...(selectedPaymentMethod === "card" && {
+        cardDetails: {
+          cardNumber: cardDetails.cardNumber.slice(-4),
+          expiryDate: cardDetails.expiryDate
+        }
+      })
+    };
+
+    const transactions = JSON.parse(localStorage.getItem('transactions') || '[]');
+    transactions.push(transaction);
+    localStorage.setItem('transactions', JSON.stringify(transactions));
 
     toast({
       title: selectedPaymentMethod === "cash" ? "Initial Order Successful!" : "Payment successful",
@@ -339,21 +359,22 @@ const POS = () => {
                   <div className="space-y-4 animate-in">
                     <div className="bg-white p-4 rounded-lg text-center">
                       <QrCode className="mx-auto h-32 w-32 text-[#8B4513]" />
-                      <p className="mt-2 text-sm text-gray-600">Take a screenshot and paste it here</p>
+                      <p className="mt-2 text-sm text-gray-600">Take a Screenshot and Attach it below</p>
                     </div>
-                    <Input
-                      type="text"
-                      placeholder="Click here and press Ctrl+V to paste"
-                      onPaste={handleImagePaste}
-                      className="w-full"
-                    />
-                    <Button
-                      onClick={handleEWalletSubmit}
-                      className="w-full"
-                      style={{ backgroundColor: '#8B4513', color: 'white' }}
-                    >
-                      Paste here!
-                    </Button>
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                      />
+                      <Button
+                        className="w-full"
+                        style={{ backgroundColor: '#8B4513', color: 'white' }}
+                      >
+                        Attach here!
+                      </Button>
+                    </label>
                   </div>
                 )}
                 
@@ -422,4 +443,3 @@ const POS = () => {
 };
 
 export default POS;
-

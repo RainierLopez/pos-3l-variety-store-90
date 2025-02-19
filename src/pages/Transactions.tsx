@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -24,6 +23,10 @@ interface Transaction {
     price: number;
   }[];
   customerContact?: string;
+  cardDetails?: {
+    cardNumber: string;
+    expiryDate: string;
+  };
 }
 
 const Transactions = () => {
@@ -178,9 +181,15 @@ const Transactions = () => {
                   <span>Total Amount</span>
                   <span className="text-[#8B4513]">₱{selectedTransaction?.total.toFixed(2)}</span>
                 </div>
-                <p className="text-sm text-gray-500 mt-1">
-                  Payment Method: {selectedTransaction?.paymentMethod}
-                </p>
+                <div className="text-sm text-gray-500 mt-1">
+                  <p>Payment Method: {selectedTransaction?.paymentMethod}</p>
+                  {selectedTransaction?.cardDetails && (
+                    <div className="mt-1">
+                      <p>Card ending in: {selectedTransaction.cardDetails.cardNumber}</p>
+                      <p>Expires: {selectedTransaction.cardDetails.expiryDate}</p>
+                    </div>
+                  )}
+                </div>
               </div>
               {selectedTransaction?.status === "pending" && (
                 <div className="border-t pt-4 flex gap-2">
