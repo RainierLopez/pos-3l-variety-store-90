@@ -114,15 +114,6 @@ const POS = () => {
     }
   };
 
-  const handleCardSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    handlePayment();
-  };
-
-  const handleEWalletSubmit = () => {
-    handlePayment();
-  };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
@@ -132,6 +123,19 @@ const POS = () => {
       });
       setTimeout(handlePayment, 2000);
     }
+  };
+
+  const handleCardSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cardDetails.cardNumber || !cardDetails.expiryDate || !cardDetails.cvv) {
+      toast({
+        title: "Missing card details",
+        description: "Please fill in all card details",
+        variant: "destructive",
+      });
+      return;
+    }
+    handlePayment();
   };
 
   const handlePayment = () => {
@@ -153,10 +157,12 @@ const POS = () => {
       return;
     }
 
+    const calculatedTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
     const transaction = {
       id: Math.random().toString(36).substr(2, 9),
       timestamp: new Date().toISOString(),
-      total: total,
+      total: calculatedTotal,
       status: selectedPaymentMethod === "cash" ? "pending" : "completed",
       paymentMethod: selectedPaymentMethod,
       items: cart.map(item => ({
@@ -178,7 +184,7 @@ const POS = () => {
 
     toast({
       title: selectedPaymentMethod === "cash" ? "Initial Order Successful!" : "Payment successful",
-      description: `Total amount: ₱${total.toFixed(2)}`,
+      description: `Total amount: ₱${calculatedTotal.toFixed(2)}`,
     });
     setPaymentComplete(true);
     setShowCardForm(false);
