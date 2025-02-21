@@ -37,12 +37,27 @@ const POS = () => {
     { id: 3, name: "Bacon (Per kg)", price: 215, quantity: 0, category: "meat" },
     { id: 4, name: "Chicken Drumsticks (Per kg)", price: 180, quantity: 0, category: "meat" },
     { id: 5, name: "Chicken Wings (Per kg)", price: 120, quantity: 0, category: "meat" },
-    { id: 6, name: "Eggplant (Per kg)", price: 40, quantity: 0, category: "vegetable" },
-    { id: 7, name: "Carrots (Per kg)", price: 80, quantity: 0, category: "vegetable" },
-    { id: 8, name: "Sayote (Per kg)", price: 50, quantity: 0, category: "vegetable" },
-    { id: 9, name: "Potatoes (Per kg)", price: 80, quantity: 0, category: "vegetable" },
-    { id: 10, name: "Garlic (Per kg)", price: 103.63, quantity: 0, category: "vegetable" },
-    { id: 11, name: "Onion (Per kg)", price: 89.13, quantity: 0, category: "vegetable" },
+    { id: 6, name: "Papaitan Regular (Per kg)", price: 265, quantity: 0, category: "meat" },
+    { id: 7, name: "Camto Ribs (Per kg)", price: 380, quantity: 0, category: "meat" },
+    { id: 8, name: "Giniling na Baka (Per kg)", price: 440, quantity: 0, category: "meat" },
+    { id: 9, name: "Bulalo (Per kg)", price: 380, quantity: 0, category: "meat" },
+    { id: 10, name: "Pork Adobo Cut (Per kg)", price: 355, quantity: 0, category: "meat" },
+    { id: 11, name: "Roundsteak (Per kg)", price: 440, quantity: 0, category: "meat" },
+    { id: 12, name: "Buto-buto (Per kg)", price: 290, quantity: 0, category: "meat" },
+    { id: 13, name: "Eggplant (Per kg)", price: 40, quantity: 0, category: "vegetable" },
+    { id: 14, name: "Carrots (Per kg)", price: 80, quantity: 0, category: "vegetable" },
+    { id: 15, name: "Sayote (Per kg)", price: 50, quantity: 0, category: "vegetable" },
+    { id: 16, name: "Potatoes (Per kg)", price: 80, quantity: 0, category: "vegetable" },
+    { id: 17, name: "Garlic (Per kg)", price: 103.63, quantity: 0, category: "vegetable" },
+    { id: 18, name: "Onion (Per kg)", price: 89.13, quantity: 0, category: "vegetable" },
+    { id: 19, name: "Okra (Per kg)", price: 70, quantity: 0, category: "vegetable" },
+    { id: 20, name: "Luya (Per kg)", price: 200, quantity: 0, category: "vegetable" },
+    { id: 21, name: "Green ice lettuce (Per kg)", price: 16, quantity: 0, category: "vegetable" },
+    { id: 22, name: "Celery", price: 8, quantity: 0, category: "vegetable" },
+    { id: 23, name: "Bell pepper (Per kg)", price: 50, quantity: 0, category: "vegetable" },
+    { id: 24, name: "Siling labuyo (Per kg)", price: 280, quantity: 0, category: "vegetable" },
+    { id: 25, name: "Ampalaya (Per kg)", price: 100, quantity: 0, category: "vegetable" },
+    { id: 26, name: "Japanese cucumber (Per kg)", price: 55, quantity: 0, category: "vegetable" },
   ];
 
   const addToCart = (product: Product) => {
@@ -336,7 +351,7 @@ const POS = () => {
   };
 
   const paymentMethods = [
-    { id: "cash", name: "Cash", icon: <DollarSign className="h-4 w-4" /> },
+    { id: "cash", name: "Cash", icon: "₱" },
     { id: "card", name: "Card", icon: <CreditCard className="h-4 w-4" /> },
     { id: "wallet", name: "E-Wallet", icon: <Wallet className="h-4 w-4" /> },
   ];
