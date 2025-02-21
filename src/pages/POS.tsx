@@ -1,20 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { CreditCard, Printer, Wallet, DollarSign, Database } from "lucide-react";
+import { Database } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ProductCatalog } from "@/components/pos/ProductCatalog";
-import { CartItem } from "@/components/pos/CartItem";
-import { CardPayment } from "@/components/pos/payments/CardPayment";
-import { EWalletPayment } from "@/components/pos/payments/EWalletPayment";
-import { Product, CardDetails } from "@/types/pos";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { CartSummary } from "@/components/pos/CartSummary";
+import { PhoneNumberDialog } from "@/components/pos/PhoneNumberDialog";
+import { Product, CardDetails, Transaction } from "@/types/pos";
+import { products } from "@/data/products";
 
 const POS = () => {
   const [cart, setCart] = useState<Product[]>([]);
@@ -31,96 +24,9 @@ const POS = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const products: Product[] = [
-    { id: 1, name: "Liempo (Per kg)", price: 230, quantity: 0, category: "meat" },
-    { id: 2, name: "Lechon Roll (Per kg)", price: 200, quantity: 0, category: "meat" },
-    { id: 3, name: "Bacon (Per kg)", price: 215, quantity: 0, category: "meat" },
-    { id: 4, name: "Chicken Drumsticks (Per kg)", price: 180, quantity: 0, category: "meat" },
-    { id: 5, name: "Chicken Wings (Per kg)", price: 120, quantity: 0, category: "meat" },
-    { id: 6, name: "Papaitan Regular (Per kg)", price: 265, quantity: 0, category: "meat" },
-    { id: 7, name: "Camto Ribs (Per kg)", price: 380, quantity: 0, category: "meat" },
-    { id: 8, name: "Giniling na Baka (Per kg)", price: 440, quantity: 0, category: "meat" },
-    { id: 9, name: "Bulalo (Per kg)", price: 380, quantity: 0, category: "meat" },
-    { id: 10, name: "Pork Adobo Cut (Per kg)", price: 355, quantity: 0, category: "meat" },
-    { id: 11, name: "Roundsteak (Per kg)", price: 440, quantity: 0, category: "meat" },
-    { id: 12, name: "Buto-buto (Per kg)", price: 290, quantity: 0, category: "meat" },
-    { id: 13, name: "Eggplant (Per kg)", price: 40, quantity: 0, category: "vegetable" },
-    { id: 14, name: "Carrots (Per kg)", price: 80, quantity: 0, category: "vegetable" },
-    { id: 15, name: "Sayote (Per kg)", price: 50, quantity: 0, category: "vegetable" },
-    { id: 16, name: "Potatoes (Per kg)", price: 80, quantity: 0, category: "vegetable" },
-    { id: 17, name: "Garlic (Per kg)", price: 103.63, quantity: 0, category: "vegetable" },
-    { id: 18, name: "Onion (Per kg)", price: 89.13, quantity: 0, category: "vegetable" },
-    { id: 19, name: "Okra (Per kg)", price: 70, quantity: 0, category: "vegetable" },
-    { id: 20, name: "Luya (Per kg)", price: 200, quantity: 0, category: "vegetable" },
-    { id: 21, name: "Green ice lettuce (Per kg)", price: 16, quantity: 0, category: "vegetable" },
-    { id: 22, name: "Celery", price: 8, quantity: 0, category: "vegetable" },
-    { id: 23, name: "Bell pepper (Per kg)", price: 50, quantity: 0, category: "vegetable" },
-    { id: 24, name: "Siling labuyo (Per kg)", price: 280, quantity: 0, category: "vegetable" },
-    { id: 25, name: "Ampalaya (Per kg)", price: 100, quantity: 0, category: "vegetable" },
-    { id: 26, name: "Japanese cucumber (Per kg)", price: 55, quantity: 0, category: "vegetable" },
-  ];
-
-  const addToCart = (product: Product) => {
-    setPaymentComplete(false);
-    setSelectedPaymentMethod(null);
-    setCart((currentCart) => {
-      const existingProduct = currentCart.find((item) => item.id === product.id);
-      if (existingProduct) {
-        return currentCart.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      }
-      return [...currentCart, { ...product, quantity: 1 }];
-    });
-  };
-
-  const updateQuantity = (productId: number, change: number) => {
-    setPaymentComplete(false);
-    setSelectedPaymentMethod(null);
-    setCart((currentCart) =>
-      currentCart.map((item) => {
-        if (item.id === productId) {
-          const newQuantity = item.quantity + change;
-          return newQuantity > 0
-            ? { ...item, quantity: newQuantity }
-            : item;
-        }
-        return item;
-      }).filter(item => item.quantity > 0)
-    );
-  };
-
-  const removeFromCart = (productId: number) => {
-    setPaymentComplete(false);
-    setSelectedPaymentMethod(null);
-    setCart((currentCart) =>
-      currentCart.filter((item) => item.id !== productId)
-    );
-  };
-
-  const total = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-
-  const handlePaymentMethodSelect = (methodId: string) => {
-    setSelectedPaymentMethod(methodId);
-    setShowCardForm(methodId === "card");
-    setShowEWalletForm(methodId === "wallet");
-    
-    if (methodId === "cash") {
-      toast({
-        title: "Cash Payment Selected",
-        description: "The transaction will be successful once the payment is handed and the receipt will be given.",
-      });
-    }
-  };
-
   const [showPhoneDialog, setShowPhoneDialog] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [currentTransactionForReceipt, setCurrentTransactionForReceipt] = useState<any>(null);
+  const [currentTransactionForReceipt, setCurrentTransactionForReceipt] = useState<Transaction | null>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -335,6 +241,64 @@ const POS = () => {
     setShowEWalletForm(false);
   };
 
+  const addToCart = (product: Product) => {
+    setPaymentComplete(false);
+    setSelectedPaymentMethod(null);
+    setCart((currentCart) => {
+      const existingProduct = currentCart.find((item) => item.id === product.id);
+      if (existingProduct) {
+        return currentCart.map((item) =>
+          item.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...currentCart, { ...product, quantity: 1 }];
+    });
+  };
+
+  const updateQuantity = (productId: number, change: number) => {
+    setPaymentComplete(false);
+    setSelectedPaymentMethod(null);
+    setCart((currentCart) =>
+      currentCart.map((item) => {
+        if (item.id === productId) {
+          const newQuantity = item.quantity + change;
+          return newQuantity > 0
+            ? { ...item, quantity: newQuantity }
+            : item;
+        }
+        return item;
+      }).filter(item => item.quantity > 0)
+    );
+  };
+
+  const removeFromCart = (productId: number) => {
+    setPaymentComplete(false);
+    setSelectedPaymentMethod(null);
+    setCart((currentCart) =>
+      currentCart.filter((item) => item.id !== productId)
+    );
+  };
+
+  const total = cart.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+
+  const handlePaymentMethodSelect = (methodId: string) => {
+    setSelectedPaymentMethod(methodId);
+    setShowCardForm(methodId === "card");
+    setShowEWalletForm(methodId === "wallet");
+    
+    if (methodId === "cash") {
+      toast({
+        title: "Cash Payment Selected",
+        description: "The transaction will be successful once the payment is handed and the receipt will be given.",
+      });
+    }
+  };
+
   const viewTransactions = () => {
     navigate("/transactions");
   };
@@ -350,47 +314,15 @@ const POS = () => {
     });
   };
 
-  const paymentMethods = [
-    { id: "cash", name: "Cash", icon: "₱" },
-    { id: "card", name: "Card", icon: <CreditCard className="h-4 w-4" /> },
-    { id: "wallet", name: "E-Wallet", icon: <Wallet className="h-4 w-4" /> },
-  ];
-
   return (
     <div className="min-h-screen bg-gray-50 p-4">
-      
-      <Dialog open={showPhoneDialog} onOpenChange={setShowPhoneDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Enter Phone Number</DialogTitle>
-            <DialogDescription>
-              Please enter the phone number to send the receipt
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="phone" className="text-sm font-medium">
-                Phone Number
-              </label>
-              <input
-                id="phone"
-                type="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Enter 11-digit number"
-                className="border rounded-md px-3 py-2"
-              />
-            </div>
-            <Button
-              onClick={handleSendReceipt}
-              className="w-full"
-              style={{ backgroundColor: '#8B4513', color: 'white' }}
-            >
-              Send Receipt
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <PhoneNumberDialog
+        open={showPhoneDialog}
+        onOpenChange={setShowPhoneDialog}
+        phoneNumber={phoneNumber}
+        onPhoneNumberChange={setPhoneNumber}
+        onSendReceipt={handleSendReceipt}
+      />
 
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
         <ProductCatalog
@@ -413,114 +345,25 @@ const POS = () => {
             </Button>
           </div>
 
-          <div className="space-y-4">
-            {cart.map((item) => (
-              <CartItem
-                key={item.id}
-                item={item}
-                onUpdateQuantity={updateQuantity}
-                onRemove={removeFromCart}
-              />
-            ))}
-
-            {cart.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                Cart is empty. Add some products!
-              </div>
-            )}
-
-            {cart.length > 0 && !paymentComplete && (
-              <div className="mt-4 space-y-4">
-                <div className="border-t pt-4">
-                  <h3 className="font-medium mb-2">Select Payment Method</h3>
-                  <div className="grid grid-cols-3 gap-2">
-                    {paymentMethods.map((method) => (
-                      <Button
-                        key={method.id}
-                        variant={selectedPaymentMethod === method.id ? "default" : "outline"}
-                        className="w-full"
-                        onClick={() => handlePaymentMethodSelect(method.id)}
-                        style={selectedPaymentMethod === method.id ? { backgroundColor: '#8B4513', color: 'white' } : {}}
-                      >
-                        {method.icon}
-                        {method.name}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                {showCardForm && (
-                  <CardPayment
-                    cardDetails={cardDetails}
-                    onCardDetailsChange={setCardDetails}
-                    onSubmit={handleCardSubmit}
-                  />
-                )}
-
-                {showEWalletForm && (
-                  <EWalletPayment
-                    onFileUpload={handleFileUpload}
-                  />
-                )}
-                
-                <div className="border-t pt-4">
-                  <div className="flex justify-between mb-4">
-                    <span className="font-bold">Total:</span>
-                    <span className="font-bold">
-                      ₱{total.toFixed(2)}
-                    </span>
-                  </div>
-                  {!showCardForm && !showEWalletForm && (
-                    <Button
-                      onClick={handlePayment}
-                      className="w-full"
-                      style={{ backgroundColor: '#8B4513', color: 'white' }}
-                    >
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Pay Now
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {paymentComplete && (
-              <div className="mt-4 space-y-4 animate-in">
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
-                  {selectedPaymentMethod === "cash" ? (
-                    <>
-                      <p className="font-medium">Pending Payment</p>
-                      <p className="text-sm">Total Bill: ₱{total.toFixed(2)}</p>
-                      <p className="text-sm">Method: Cash</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="font-medium">Payment Successful!</p>
-                      <p className="text-sm">Total paid: ₱{total.toFixed(2)}</p>
-                      <p className="text-sm">Method: {selectedPaymentMethod}</p>
-                    </>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <Button
-                    onClick={() => handlePrintReceipt(currentTransactionForReceipt)}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    <Printer className="mr-2 h-4 w-4" />
-                    {selectedPaymentMethod === "cash" ? "Print Initial Receipt" : "Print Receipt"}
-                  </Button>
-                  <Button
-                    onClick={resetTransaction}
-                    className="w-full"
-                    style={{ backgroundColor: '#8B4513', color: 'white' }}
-                  >
-                    New Transaction
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
+          <CartSummary
+            cart={cart}
+            total={total}
+            paymentComplete={paymentComplete}
+            selectedPaymentMethod={selectedPaymentMethod}
+            showCardForm={showCardForm}
+            showEWalletForm={showEWalletForm}
+            cardDetails={cardDetails}
+            currentTransactionForReceipt={currentTransactionForReceipt}
+            onUpdateQuantity={updateQuantity}
+            onRemoveFromCart={removeFromCart}
+            onPaymentMethodSelect={handlePaymentMethodSelect}
+            onCardDetailsChange={setCardDetails}
+            onCardSubmit={handleCardSubmit}
+            onFileUpload={handleFileUpload}
+            onPayment={handlePayment}
+            onPrintReceipt={handlePrintReceipt}
+            onResetTransaction={resetTransaction}
+          />
         </div>
       </div>
     </div>
