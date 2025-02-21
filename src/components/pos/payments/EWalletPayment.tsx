@@ -32,7 +32,11 @@ export const EWalletPayment = ({ onFileUpload }: EWalletPaymentProps) => {
             className="mx-auto h-32 w-32 object-contain"
           />
         ) : (
-          <QrCode className="mx-auto h-32 w-32 text-[#8B4513]" />
+          <img 
+            src="/lovable-uploads/97334f1d-9389-4851-9efb-67e2ac85aef0.png" 
+            alt="InstaPay QR Code"
+            className="mx-auto h-32 w-32 object-contain"
+          />
         )}
         <p className="mt-2 text-sm text-gray-600">
           Take a Screenshot and Attach it below
