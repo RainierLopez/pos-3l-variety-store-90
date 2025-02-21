@@ -165,14 +165,14 @@ const Transactions = () => {
         )}
 
         <Dialog open={!!selectedTransaction} onOpenChange={() => setSelectedTransaction(null)}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[425px] max-h-[90vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>Order #{selectedTransaction?.id}</DialogTitle>
               <DialogDescription>
                 {new Date(selectedTransaction?.timestamp || "").toLocaleString()}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto flex-1 pr-2">
               <div className="border-t pt-4">
                 <h4 className="font-medium mb-2">Order Items</h4>
                 {selectedTransaction?.items.map((item, index) => (
@@ -207,27 +207,27 @@ const Transactions = () => {
                   )}
                 </div>
               </div>
-              {selectedTransaction?.status === "pending" && (
-                <div className="border-t pt-4 flex gap-2">
-                  <Button
-                    className="flex-1"
-                    style={{ backgroundColor: '#8B4513', color: 'white' }}
-                    onClick={() => handleOrderAction('complete')}
-                  >
-                    <Check className="h-4 w-4 mr-1" />
-                    Complete Order
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    className="flex-1"
-                    onClick={() => handleOrderAction('cancel')}
-                  >
-                    <X className="h-4 w-4 mr-1" />
-                    Cancel Order
-                  </Button>
-                </div>
-              )}
             </div>
+            {selectedTransaction?.status === "pending" && (
+              <div className="border-t pt-4 mt-4 flex gap-2">
+                <Button
+                  className="flex-1"
+                  style={{ backgroundColor: '#8B4513', color: 'white' }}
+                  onClick={() => handleOrderAction('complete')}
+                >
+                  <Check className="h-4 w-4 mr-1" />
+                  Complete Order
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={() => handleOrderAction('cancel')}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Cancel Order
+                </Button>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>
