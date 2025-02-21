@@ -33,13 +33,13 @@ export const EWalletPayment = ({ onFileUpload }: EWalletPaymentProps) => {
           />
         ) : (
           <img 
-            src="/lovable-uploads/97334f1d-9389-4851-9efb-67e2ac85aef0.png" 
+            src="/lovable-uploads/c7206fcf-6a6e-406c-8aa7-51ec1981655b.png" 
             alt="InstaPay QR Code"
             className="mx-auto h-32 w-32 object-contain"
           />
         )}
         <p className="mt-2 text-sm text-gray-600">
-          Take a Screenshot and Attach it below
+          Scan and Attach it below
         </p>
       </div>
       <div className="flex flex-col gap-2">
