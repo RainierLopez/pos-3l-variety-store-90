@@ -14,15 +14,42 @@ export const CardPayment = ({
   onCardDetailsChange,
   onSubmit,
 }: CardPaymentProps) => {
+  const formatCardNumber = (value: string) => {
+    // Remove any non-digit characters
+    const digits = value.replace(/\D/g, '');
+    
+    // Limit to 16 digits
+    const truncated = digits.slice(0, 16);
+    
+    // Add dashes every 4 digits
+    const formatted = truncated.replace(/(\d{4})(?=\d)/g, '$1-');
+    
+    return formatted;
+  };
+
+  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCardNumber(e.target.value);
+    onCardDetailsChange({ ...cardDetails, cardNumber: formatted });
+  };
+
   return (
     <form onSubmit={onSubmit} className="space-y-4 animate-in">
+      <div className="bg-blue-50 p-4 rounded-lg mb-4">
+        <p className="text-sm text-blue-800 font-medium mb-2">Accepted Cards:</p>
+        <div className="text-sm text-blue-700">
+          <ul className="list-disc list-inside space-y-1">
+            <li>Bank Cards: BDO, Metrobank, BPI, PNB, Unionbank, AUB</li>
+            <li>Credit Cards: Visa, Mastercard</li>
+          </ul>
+        </div>
+      </div>
+      
       <Input
         type="text"
-        placeholder="Card Number"
+        placeholder="Card Number (e.g., 4235-1231-1241-4234)"
         value={cardDetails.cardNumber}
-        onChange={(e) =>
-          onCardDetailsChange({ ...cardDetails, cardNumber: e.target.value })
-        }
+        onChange={handleCardNumberChange}
+        maxLength={19} // 16 digits + 3 dashes
         required
       />
       <div className="grid grid-cols-2 gap-4">
