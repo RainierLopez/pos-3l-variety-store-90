@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Printer, ShoppingBag, CreditCard, Wallet, Cash } from "lucide-react";
+import { Printer, ShoppingBag, CreditCard, Wallet, Banknote } from "lucide-react";
 import { Product, Transaction } from "@/types/pos";
 import { CartItem } from "./CartItem";
 import { PaymentMethods } from "./PaymentMethods";
@@ -50,7 +50,7 @@ export const CartSummary = ({
   const getPaymentIcon = () => {
     switch (selectedPaymentMethod) {
       case 'cash':
-        return <Cash className="h-5 w-5 mr-2" />;
+        return <Banknote className="h-5 w-5 mr-2" />;
       case 'card':
         return <CreditCard className="h-5 w-5 mr-2" />;
       case 'wallet':
@@ -109,7 +109,7 @@ export const CartSummary = ({
             <div className="flex justify-between mb-4 items-center">
               <span className="font-bold text-lg">Total:</span>
               <span className="font-bold text-xl text-[#8B4513]">
-                ₱{total.toFixed(2)}
+                {total.toFixed(2)}
               </span>
             </div>
             {!showCardForm && !showEWalletForm && (
@@ -131,16 +131,16 @@ export const CartSummary = ({
           <div className="p-6 rounded-lg shadow-inner border text-center">
             {selectedPaymentMethod === "cash" ? (
               <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 text-yellow-700">
-                <Cash className="h-8 w-8 mx-auto mb-2" />
+                <Banknote className="h-8 w-8 mx-auto mb-2" />
                 <p className="font-medium text-lg">Pending Payment</p>
-                <p className="text-base">Total Bill: ₱{total.toFixed(2)}</p>
+                <p className="text-base">Total Bill: {total.toFixed(2)}</p>
                 <p className="text-base">Method: Cash</p>
               </div>
             ) : (
               <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-green-700">
                 {getPaymentIcon()}
                 <p className="font-medium text-lg">Payment Successful!</p>
-                <p className="text-base">Total paid: ₱{total.toFixed(2)}</p>
+                <p className="text-base">Total paid: {total.toFixed(2)}</p>
                 <p className="text-base">Method: {selectedPaymentMethod}</p>
               </div>
             )}

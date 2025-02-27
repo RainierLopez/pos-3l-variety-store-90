@@ -1,5 +1,5 @@
 
-import { CreditCard, Wallet } from "lucide-react";
+import { CreditCard, Wallet, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface PaymentMethodsProps {
@@ -12,7 +12,7 @@ export const PaymentMethods = ({
   onPaymentMethodSelect,
 }: PaymentMethodsProps) => {
   const paymentMethods = [
-    { id: "cash", name: "Cash", icon: "Cash" },
+    { id: "cash", name: "Cash", icon: <Banknote className="h-4 w-4 mr-2" /> },
     { id: "card", name: "Card", icon: <CreditCard className="h-4 w-4 mr-2" /> },
     { id: "wallet", name: "E-Wallet", icon: <Wallet className="h-4 w-4 mr-2" /> },
   ];
@@ -29,7 +29,8 @@ export const PaymentMethods = ({
             onClick={() => onPaymentMethodSelect(method.id)}
             style={selectedPaymentMethod === method.id ? { backgroundColor: '#8B4513', color: 'white' } : {}}
           >
-            {typeof method.icon === 'string' ? method.icon : method.icon}
+            {method.icon}
+            {method.name}
           </Button>
         ))}
       </div>
