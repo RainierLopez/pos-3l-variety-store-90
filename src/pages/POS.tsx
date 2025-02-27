@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Database, List, ShoppingCart } from "lucide-react";
+import { Database, List, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ProductCatalog } from "@/components/pos/ProductCatalog";
 import { CartSummary } from "@/components/pos/CartSummary";
@@ -440,75 +440,86 @@ const POS = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-pink-50 p-4">
-      <PhoneNumberDialog
-        open={showPhoneDialog}
-        onOpenChange={setShowPhoneDialog}
-        phoneNumber={phoneNumber}
-        onPhoneNumberChange={setPhoneNumber}
-        onSendReceipt={handleSendReceipt}
-      />
+  const handleLogout = () => {
+    navigate("/");
+  };
 
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-[#8B4513] flex items-center">
-            <ShoppingCart className="mr-2 h-6 w-6" />
-            Point of Sale
-          </h1>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-white to-pink-50">
+      <div className="bg-[#8B4513] text-white py-4 px-6 shadow-lg mb-6">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <Button
+              onClick={generateBarcodeList}
+              variant="ghost"
+              className="text-white hover:text-white/80 hover:bg-white/10 flex items-center gap-2"
+            >
+              <List className="h-5 w-5" />
+              Generate Barcode List
+            </Button>
+          </div>
+          <h1 className="text-2xl font-bold">3-L Variety Store</h1>
           <Button
-            onClick={generateBarcodeList}
-            variant="outline"
-            className="text-sm rounded-full shadow-md hover:shadow-lg transition-all hover:border-[#8B4513] flex items-center gap-2"
+            onClick={handleLogout}
+            variant="ghost"
+            className="text-white hover:text-white/80 hover:bg-white/10"
           >
-            <List className="h-4 w-4" />
-            Generate Barcode List
+            <LogOut className="h-5 w-5" />
           </Button>
         </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <ProductCatalog
-            products={products}
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-            onAddToCart={addToCart}
-          />
+      </div>
 
-          <div className="glass-panel p-6 animate-in rounded-xl shadow-lg border border-white border-opacity-30 bg-white bg-opacity-80">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold text-[#8B4513] flex items-center">
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                Cart
-              </h2>
-              <Button
-                onClick={viewTransactions}
-                variant="outline"
-                className="flex items-center gap-2 rounded-full shadow-md hover:shadow-lg transition-all hover:border-[#8B4513]"
-              >
-                <Database className="h-4 w-4" />
-                View Transactions
-              </Button>
-            </div>
+      <div className="p-4">
+        <PhoneNumberDialog
+          open={showPhoneDialog}
+          onOpenChange={setShowPhoneDialog}
+          phoneNumber={phoneNumber}
+          onPhoneNumberChange={setPhoneNumber}
+          onSendReceipt={handleSendReceipt}
+        />
 
-            <CartSummary
-              cart={cart}
-              total={total}
-              paymentComplete={paymentComplete}
-              selectedPaymentMethod={selectedPaymentMethod}
-              showCardForm={showCardForm}
-              showEWalletForm={showEWalletForm}
-              cardDetails={cardDetails}
-              currentTransactionForReceipt={currentTransactionForReceipt}
-              onUpdateQuantity={updateQuantity}
-              onRemoveFromCart={removeFromCart}
-              onPaymentMethodSelect={handlePaymentMethodSelect}
-              onCardDetailsChange={setCardDetails}
-              onCardSubmit={handleCardSubmit}
-              onFileUpload={handleFileUpload}
-              onPayment={handlePayment}
-              onPrintReceipt={handlePrintReceipt}
-              onResetTransaction={resetTransaction}
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <ProductCatalog
+              products={products}
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+              onAddToCart={addToCart}
             />
+
+            <div className="glass-panel p-6 animate-in rounded-xl shadow-lg border border-white border-opacity-30 bg-white bg-opacity-80">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-[#8B4513]">Cart</h2>
+                <Button
+                  onClick={viewTransactions}
+                  variant="outline"
+                  className="flex items-center gap-2 rounded-full shadow-md hover:shadow-lg transition-all hover:border-[#8B4513]"
+                >
+                  <Database className="h-4 w-4" />
+                  View Transactions
+                </Button>
+              </div>
+
+              <CartSummary
+                cart={cart}
+                total={total}
+                paymentComplete={paymentComplete}
+                selectedPaymentMethod={selectedPaymentMethod}
+                showCardForm={showCardForm}
+                showEWalletForm={showEWalletForm}
+                cardDetails={cardDetails}
+                currentTransactionForReceipt={currentTransactionForReceipt}
+                onUpdateQuantity={updateQuantity}
+                onRemoveFromCart={removeFromCart}
+                onPaymentMethodSelect={handlePaymentMethodSelect}
+                onCardDetailsChange={setCardDetails}
+                onCardSubmit={handleCardSubmit}
+                onFileUpload={handleFileUpload}
+                onPayment={handlePayment}
+                onPrintReceipt={handlePrintReceipt}
+                onResetTransaction={resetTransaction}
+              />
+            </div>
           </div>
         </div>
       </div>
