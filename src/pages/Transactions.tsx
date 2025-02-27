@@ -118,25 +118,27 @@ const Transactions = () => {
   const pendingTransactions = filteredTransactions.filter(t => t.status === "pending");
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-white to-pink-50 p-4">
+      <div className="max-w-7xl mx-auto glass-panel p-6 rounded-xl shadow-lg border border-white border-opacity-30 bg-white bg-opacity-80">
         <div className="mb-6 flex items-center justify-between">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate("/pos")}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
-          <h1 className="text-2xl font-bold">Transaction Records</h1>
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate("/pos")}
+              className="flex items-center gap-2 rounded-full shadow-md hover:shadow-lg transition-all hover:border-[#8B4513]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to POS
+            </Button>
+            <h1 className="text-2xl font-bold text-[#8B4513]">Transaction Records</h1>
+          </div>
         </div>
 
-        <div className="mb-6 grid grid-cols-2 gap-4">
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium mb-1 block">Filter by Status</label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
+              <SelectTrigger className="border-2 rounded-lg focus:border-[#8B4513] focus:ring-[#8B4513]">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
@@ -150,7 +152,7 @@ const Transactions = () => {
           <div>
             <label className="text-sm font-medium mb-1 block">Filter by Payment</label>
             <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-              <SelectTrigger>
+              <SelectTrigger className="border-2 rounded-lg focus:border-[#8B4513] focus:ring-[#8B4513]">
                 <SelectValue placeholder="Select payment method" />
               </SelectTrigger>
               <SelectContent>
@@ -164,7 +166,7 @@ const Transactions = () => {
         </div>
 
         {filteredTransactions.length === 0 ? (
-          <div className="text-center py-12">
+          <div className="text-center py-12 bg-white bg-opacity-50 rounded-xl border border-gray-100 shadow-inner">
             <p className="text-gray-500 text-lg">No transactions found</p>
           </div>
         ) : (
@@ -172,7 +174,7 @@ const Transactions = () => {
             {filteredTransactions.map((transaction) => (
               <div
                 key={transaction.id}
-                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 p-4 border border-gray-100"
+                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 p-4 border border-gray-100 hover:border-[#8B4513] cursor-pointer"
                 onClick={() => setSelectedTransaction(transaction)}
               >
                 <div className="flex justify-between items-start mb-3">
@@ -187,14 +189,14 @@ const Transactions = () => {
                   </span>
                 </div>
                 <div className="mb-3">
-                  <p className="font-medium text-lg text-[#8B4513]">₱{transaction.total.toFixed(2)}</p>
+                  <p className="font-medium text-lg text-[#8B4513]">{transaction.total.toFixed(2)}</p>
                   <p className="text-sm text-gray-500">{formatPaymentMethod(transaction.paymentMethod)}</p>
                 </div>
                 <div className="flex justify-between items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1"
+                    className="flex-1 rounded-full hover:border-[#8B4513] hover:text-[#8B4513]"
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedTransaction(transaction);
@@ -207,7 +209,7 @@ const Transactions = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1"
+                      className="flex-1 rounded-full hover:border-[#8B4513] hover:text-[#8B4513]"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleCallCustomer(transaction.customerContact!);
@@ -224,32 +226,32 @@ const Transactions = () => {
         )}
 
         <Dialog open={!!selectedTransaction} onOpenChange={() => setSelectedTransaction(null)}>
-          <DialogContent className="sm:max-w-[425px] max-h-[90vh] flex flex-col">
+          <DialogContent className="sm:max-w-[425px] max-h-[90vh] flex flex-col bg-white">
             <DialogHeader>
               <DialogTitle>Order #{selectedTransaction?.id}</DialogTitle>
               <DialogDescription>
                 {selectedTransaction && new Date(selectedTransaction.timestamp).toLocaleString()}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 overflow-y-auto flex-1 pr-2">
+            <div className="space-y-4 overflow-y-auto flex-1 pr-2 custom-scrollbar">
               <div className="border-t pt-4">
                 <h4 className="font-medium mb-2">Order Items</h4>
                 {selectedTransaction?.items.map((item, index) => (
-                  <div key={index} className="flex justify-between text-sm py-1">
+                  <div key={index} className="flex justify-between text-sm py-1 border-b border-gray-100">
                     <span>{item.name} × {item.quantity}</span>
-                    <span>₱{(item.price * item.quantity).toFixed(2)}</span>
+                    <span>{(item.price * item.quantity).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
               <div className="border-t pt-4">
                 <div className="flex justify-between font-medium text-lg">
                   <span>Total Amount</span>
-                  <span className="text-[#8B4513]">₱{selectedTransaction?.total.toFixed(2)}</span>
+                  <span className="text-[#8B4513]">{selectedTransaction?.total.toFixed(2)}</span>
                 </div>
                 <div className="text-sm text-gray-500 mt-1">
                   <p>Payment Method: {selectedTransaction && formatPaymentMethod(selectedTransaction.paymentMethod)}</p>
                   {selectedTransaction?.cardDetails && (
-                    <div className="mt-1">
+                    <div className="mt-1 p-2 bg-gray-50 rounded-md">
                       <p>Card ending in: {selectedTransaction.cardDetails.cardNumber}</p>
                       <p>Expires: {selectedTransaction.cardDetails.expiryDate}</p>
                     </div>
@@ -270,7 +272,7 @@ const Transactions = () => {
             {selectedTransaction?.status === "pending" && (
               <div className="border-t pt-4 mt-4 flex gap-2">
                 <Button
-                  className="flex-1"
+                  className="flex-1 rounded-lg"
                   style={{ backgroundColor: '#8B4513', color: 'white' }}
                   onClick={() => handleOrderAction('complete')}
                 >
@@ -279,7 +281,7 @@ const Transactions = () => {
                 </Button>
                 <Button
                   variant="destructive"
-                  className="flex-1"
+                  className="flex-1 rounded-lg"
                   onClick={() => handleOrderAction('cancel')}
                 >
                   <X className="h-4 w-4 mr-1" />

@@ -448,6 +448,7 @@ const POS = () => {
     <div className="min-h-screen bg-gradient-to-br from-white to-pink-50">
       <div className="bg-[#8B4513] text-white py-4 px-6 shadow-lg mb-6">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <h1 className="text-2xl font-bold">3-L Variety Store</h1>
           <div className="flex items-center gap-4">
             <Button
               onClick={generateBarcodeList}
@@ -457,15 +458,14 @@ const POS = () => {
               <List className="h-5 w-5" />
               Generate Barcode List
             </Button>
+            <Button
+              onClick={handleLogout}
+              variant="ghost"
+              className="text-white hover:text-white/80 hover:bg-white/10"
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
           </div>
-          <h1 className="text-2xl font-bold">3-L Variety Store</h1>
-          <Button
-            onClick={handleLogout}
-            variant="ghost"
-            className="text-white hover:text-white/80 hover:bg-white/10"
-          >
-            <LogOut className="h-5 w-5" />
-          </Button>
         </div>
       </div>
 

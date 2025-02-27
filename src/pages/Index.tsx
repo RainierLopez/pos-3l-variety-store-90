@@ -13,10 +13,20 @@ const Index = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === "cashier" && password === "password") {
+    
+    const validCredentials = [
+      { username: "cashier", password: "password" },
+      { username: "admin", password: "password" }
+    ];
+
+    const isValid = validCredentials.some(
+      cred => cred.username.toLowerCase() === username.toLowerCase() && cred.password === password
+    );
+
+    if (isValid) {
       toast({
         title: "Login successful",
-        description: "Welcome back, cashier!",
+        description: `Welcome back, ${username}!`,
       });
       navigate("/pos");
     } else {
@@ -68,6 +78,11 @@ const Index = () => {
               Login
             </Button>
           </form>
+          <div className="text-center text-sm text-gray-500">
+            <p>Available accounts:</p>
+            <p>Cashier / password</p>
+            <p>Admin / password</p>
+          </div>
         </div>
       </div>
     </div>
