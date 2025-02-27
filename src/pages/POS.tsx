@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Database } from "lucide-react";
+import { Database, List, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ProductCatalog } from "@/components/pos/ProductCatalog";
 import { CartSummary } from "@/components/pos/CartSummary";
@@ -33,7 +32,6 @@ const POS = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [currentTransactionForReceipt, setCurrentTransactionForReceipt] = useState<Transaction | null>(null);
 
-  // Save products to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem("products", JSON.stringify(products));
   }, [products]);
@@ -166,7 +164,6 @@ const POS = () => {
   };
 
   const updateStockLevels = () => {
-    // Update stock levels based on cart items
     const updatedProducts = products.map(product => {
       const cartItem = cart.find(item => item.id === product.id);
       if (cartItem) {
@@ -266,7 +263,6 @@ const POS = () => {
       description: `Order #${nextOrderNumber} is now pending. Total amount: ₱${calculatedTotal.toFixed(2)}`,
     });
 
-    // Update stock levels
     updateStockLevels();
     
     setPaymentComplete(true);
@@ -275,7 +271,6 @@ const POS = () => {
   };
 
   const addToCart = (product: Product) => {
-    // First, check if there's enough stock
     const existingProduct = products.find(p => p.id === product.id);
     if (!existingProduct || existingProduct.stock <= 0) {
       toast({
@@ -286,7 +281,6 @@ const POS = () => {
       return;
     }
     
-    // Check if adding more would exceed available stock
     const cartItem = cart.find(item => item.id === product.id);
     const currentQuantityInCart = cartItem ? cartItem.quantity : 0;
     
@@ -314,7 +308,6 @@ const POS = () => {
   };
 
   const updateQuantity = (productId: number, change: number) => {
-    // Check if decreasing quantity
     if (change < 0) {
       setPaymentComplete(false);
       setSelectedPaymentMethod(null);
@@ -332,7 +325,6 @@ const POS = () => {
       return;
     }
     
-    // Check if increasing quantity (need to check stock)
     const productInStock = products.find(p => p.id === productId);
     const cartItem = cart.find(item => item.id === productId);
     
@@ -400,7 +392,6 @@ const POS = () => {
     });
   };
 
-  // Generate barcode list function
   const generateBarcodeList = () => {
     const content = `
       <html>
@@ -450,7 +441,7 @@ const POS = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-white to-pink-50 p-4">
       <PhoneNumberDialog
         open={showPhoneDialog}
         onOpenChange={setShowPhoneDialog}
@@ -459,58 +450,66 @@ const POS = () => {
         onSendReceipt={handleSendReceipt}
       />
 
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="flex flex-col gap-4">
-          <div className="flex justify-between items-center">
-            <Button
-              onClick={generateBarcodeList}
-              variant="outline"
-              className="text-sm"
-            >
-              Generate Barcode List
-            </Button>
-          </div>
-          
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-[#8B4513] flex items-center">
+            <ShoppingCart className="mr-2 h-6 w-6" />
+            Point of Sale
+          </h1>
+          <Button
+            onClick={generateBarcodeList}
+            variant="outline"
+            className="text-sm rounded-full shadow-md hover:shadow-lg transition-all hover:border-[#8B4513] flex items-center gap-2"
+          >
+            <List className="h-4 w-4" />
+            Generate Barcode List
+          </Button>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <ProductCatalog
             products={products}
             selectedCategory={selectedCategory}
             onCategoryChange={setSelectedCategory}
             onAddToCart={addToCart}
           />
-        </div>
 
-        <div className="glass-panel p-6 animate-in">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold">Cart</h2>
-            <Button
-              onClick={viewTransactions}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Database className="h-4 w-4" />
-              View Transactions
-            </Button>
+          <div className="glass-panel p-6 animate-in rounded-xl shadow-lg border border-white border-opacity-30 bg-white bg-opacity-80">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-[#8B4513] flex items-center">
+                <ShoppingCart className="mr-2 h-5 w-5" />
+                Cart
+              </h2>
+              <Button
+                onClick={viewTransactions}
+                variant="outline"
+                className="flex items-center gap-2 rounded-full shadow-md hover:shadow-lg transition-all hover:border-[#8B4513]"
+              >
+                <Database className="h-4 w-4" />
+                View Transactions
+              </Button>
+            </div>
+
+            <CartSummary
+              cart={cart}
+              total={total}
+              paymentComplete={paymentComplete}
+              selectedPaymentMethod={selectedPaymentMethod}
+              showCardForm={showCardForm}
+              showEWalletForm={showEWalletForm}
+              cardDetails={cardDetails}
+              currentTransactionForReceipt={currentTransactionForReceipt}
+              onUpdateQuantity={updateQuantity}
+              onRemoveFromCart={removeFromCart}
+              onPaymentMethodSelect={handlePaymentMethodSelect}
+              onCardDetailsChange={setCardDetails}
+              onCardSubmit={handleCardSubmit}
+              onFileUpload={handleFileUpload}
+              onPayment={handlePayment}
+              onPrintReceipt={handlePrintReceipt}
+              onResetTransaction={resetTransaction}
+            />
           </div>
-
-          <CartSummary
-            cart={cart}
-            total={total}
-            paymentComplete={paymentComplete}
-            selectedPaymentMethod={selectedPaymentMethod}
-            showCardForm={showCardForm}
-            showEWalletForm={showEWalletForm}
-            cardDetails={cardDetails}
-            currentTransactionForReceipt={currentTransactionForReceipt}
-            onUpdateQuantity={updateQuantity}
-            onRemoveFromCart={removeFromCart}
-            onPaymentMethodSelect={handlePaymentMethodSelect}
-            onCardDetailsChange={setCardDetails}
-            onCardSubmit={handleCardSubmit}
-            onFileUpload={handleFileUpload}
-            onPayment={handlePayment}
-            onPrintReceipt={handlePrintReceipt}
-            onResetTransaction={resetTransaction}
-          />
         </div>
       </div>
     </div>
