@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Database } from "lucide-react";
@@ -7,9 +8,13 @@ import { ProductCatalog } from "@/components/pos/ProductCatalog";
 import { CartSummary } from "@/components/pos/CartSummary";
 import { PhoneNumberDialog } from "@/components/pos/PhoneNumberDialog";
 import { Product, CardDetails, Transaction } from "@/types/pos";
-import { products } from "@/data/products";
+import { products as initialProducts } from "@/data/products";
 
 const POS = () => {
+  const [products, setProducts] = useState<Product[]>(() => {
+    const savedProducts = localStorage.getItem("products");
+    return savedProducts ? JSON.parse(savedProducts) : initialProducts;
+  });
   const [cart, setCart] = useState<Product[]>([]);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
@@ -27,6 +32,11 @@ const POS = () => {
   const [showPhoneDialog, setShowPhoneDialog] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [currentTransactionForReceipt, setCurrentTransactionForReceipt] = useState<Transaction | null>(null);
+
+  // Save products to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("products", JSON.stringify(products));
+  }, [products]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -48,7 +58,8 @@ const POS = () => {
           items: cart.map(item => ({
             name: item.name,
             quantity: item.quantity,
-            price: item.price
+            price: item.price,
+            barcode: item.barcode
           })),
           ewalletReceipt: imageData
         };
@@ -64,6 +75,7 @@ const POS = () => {
         });
         
         setTimeout(() => {
+          updateStockLevels();
           setPaymentComplete(true);
           setShowEWalletForm(false);
         }, 2000);
@@ -72,7 +84,7 @@ const POS = () => {
     }
   };
 
-  const handlePrintReceipt = (transaction: any) => {
+  const handlePrintReceipt = (transaction: Transaction) => {
     const printContent = `
       <div style="font-family: Arial, sans-serif; padding: 20px;">
         <h2 style="text-align: center;">Transaction Receipt</h2>
@@ -124,7 +136,7 @@ const POS = () => {
 
     const existingTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
     const updatedTransactions = existingTransactions.map((t: any) => 
-      t.id === currentTransactionForReceipt.id 
+      t.id === currentTransactionForReceipt?.id 
         ? { ...t, customerContact: phoneNumber }
         : t
     );
@@ -151,6 +163,22 @@ const POS = () => {
       return;
     }
     handlePayment();
+  };
+
+  const updateStockLevels = () => {
+    // Update stock levels based on cart items
+    const updatedProducts = products.map(product => {
+      const cartItem = cart.find(item => item.id === product.id);
+      if (cartItem) {
+        return {
+          ...product,
+          stock: Math.max(0, product.stock - cartItem.quantity)
+        };
+      }
+      return product;
+    });
+    
+    setProducts(updatedProducts);
   };
 
   const handlePayment = () => {
@@ -217,7 +245,8 @@ const POS = () => {
       items: cart.map(item => ({
         name: item.name,
         quantity: item.quantity,
-        price: item.price
+        price: item.price,
+        barcode: item.barcode
       })),
       ...(selectedPaymentMethod === "card" && {
         cardDetails: {
@@ -236,17 +265,44 @@ const POS = () => {
       title: "Order Created Successfully",
       description: `Order #${nextOrderNumber} is now pending. Total amount: ₱${calculatedTotal.toFixed(2)}`,
     });
+
+    // Update stock levels
+    updateStockLevels();
+    
     setPaymentComplete(true);
     setShowCardForm(false);
     setShowEWalletForm(false);
   };
 
   const addToCart = (product: Product) => {
+    // First, check if there's enough stock
+    const existingProduct = products.find(p => p.id === product.id);
+    if (!existingProduct || existingProduct.stock <= 0) {
+      toast({
+        title: "Out of stock",
+        description: `${product.name} is currently out of stock.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if adding more would exceed available stock
+    const cartItem = cart.find(item => item.id === product.id);
+    const currentQuantityInCart = cartItem ? cartItem.quantity : 0;
+    
+    if (currentQuantityInCart + 1 > existingProduct.stock) {
+      toast({
+        title: "Insufficient stock",
+        description: `Only ${existingProduct.stock} units of ${product.name} available.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setPaymentComplete(false);
     setSelectedPaymentMethod(null);
     setCart((currentCart) => {
-      const existingProduct = currentCart.find((item) => item.id === product.id);
-      if (existingProduct) {
+      if (cartItem) {
         return currentCart.map((item) =>
           item.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
@@ -258,18 +314,48 @@ const POS = () => {
   };
 
   const updateQuantity = (productId: number, change: number) => {
+    // Check if decreasing quantity
+    if (change < 0) {
+      setPaymentComplete(false);
+      setSelectedPaymentMethod(null);
+      setCart((currentCart) =>
+        currentCart
+          .map((item) => {
+            if (item.id === productId) {
+              const newQuantity = item.quantity + change;
+              return newQuantity > 0 ? { ...item, quantity: newQuantity } : item;
+            }
+            return item;
+          })
+          .filter((item) => item.quantity > 0)
+      );
+      return;
+    }
+    
+    // Check if increasing quantity (need to check stock)
+    const productInStock = products.find(p => p.id === productId);
+    const cartItem = cart.find(item => item.id === productId);
+    
+    if (!productInStock || !cartItem) return;
+    
+    if (cartItem.quantity + change > productInStock.stock) {
+      toast({
+        title: "Insufficient stock",
+        description: `Only ${productInStock.stock} units of ${productInStock.name} available.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setPaymentComplete(false);
     setSelectedPaymentMethod(null);
     setCart((currentCart) =>
       currentCart.map((item) => {
         if (item.id === productId) {
-          const newQuantity = item.quantity + change;
-          return newQuantity > 0
-            ? { ...item, quantity: newQuantity }
-            : item;
+          return { ...item, quantity: item.quantity + change };
         }
         return item;
-      }).filter(item => item.quantity > 0)
+      })
     );
   };
 
@@ -314,6 +400,55 @@ const POS = () => {
     });
   };
 
+  // Generate barcode list function
+  const generateBarcodeList = () => {
+    const content = `
+      <html>
+      <head>
+        <title>Barcode List</title>
+        <style>
+          body { font-family: Arial, sans-serif; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+          th { background-color: #f2f2f2; }
+          .meat { background-color: #ffebee; }
+          .vegetable { background-color: #e8f5e9; }
+        </style>
+      </head>
+      <body>
+        <h1>Product Barcode List</h1>
+        <table>
+          <tr>
+            <th>Barcode</th>
+            <th>Product Name</th>
+            <th>Price</th>
+            <th>Stock</th>
+            <th>Category</th>
+          </tr>
+          ${products.map(product => `
+            <tr class="${product.category}">
+              <td>${product.barcode}</td>
+              <td>${product.name}</td>
+              <td>₱${product.price.toFixed(2)}</td>
+              <td>${product.stock}</td>
+              <td>${product.category.charAt(0).toUpperCase() + product.category.slice(1)}</td>
+            </tr>
+          `).join('')}
+        </table>
+      </body>
+      </html>
+    `;
+    
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(content);
+      printWindow.document.close();
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <PhoneNumberDialog
@@ -325,12 +460,24 @@ const POS = () => {
       />
 
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <ProductCatalog
-          products={products}
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-          onAddToCart={addToCart}
-        />
+        <div className="flex flex-col gap-4">
+          <div className="flex justify-between items-center">
+            <Button
+              onClick={generateBarcodeList}
+              variant="outline"
+              className="text-sm"
+            >
+              Generate Barcode List
+            </Button>
+          </div>
+          
+          <ProductCatalog
+            products={products}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            onAddToCart={addToCart}
+          />
+        </div>
 
         <div className="glass-panel p-6 animate-in">
           <div className="flex justify-between items-center mb-4">

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Phone, Check, X, Eye } from "lucide-react";
+import { ArrowLeft, Phone, Check, X, Eye, Filter } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog,
@@ -11,13 +11,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Transaction } from "@/types/pos";
 
 const Transactions = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [paymentFilter, setPaymentFilter] = useState<string>("all");
 
   useEffect(() => {
     const storedTransactions = localStorage.getItem('transactions');
@@ -26,12 +36,30 @@ const Transactions = () => {
       // Transform stored transactions to ensure they match the Transaction type
       const validatedTransactions = parsedTransactions.map((t: any, index: number) => ({
         ...t,
-        id: (index + 1).toString(), // Set order number sequentially
+        id: t.id || (index + 1).toString(), // Set order number if not present
         status: t.status as "pending" | "completed" | "cancelled"
       }));
-      setTransactions(validatedTransactions);
+      setAllTransactions(validatedTransactions);
+      setFilteredTransactions(validatedTransactions);
     }
   }, []);
+
+  useEffect(() => {
+    // Apply filters
+    let result = [...allTransactions];
+    
+    // Apply status filter
+    if (statusFilter !== "all") {
+      result = result.filter(t => t.status === statusFilter);
+    }
+    
+    // Apply payment filter
+    if (paymentFilter !== "all") {
+      result = result.filter(t => t.paymentMethod === paymentFilter);
+    }
+    
+    setFilteredTransactions(result);
+  }, [statusFilter, paymentFilter, allTransactions]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -53,7 +81,7 @@ const Transactions = () => {
   const handleOrderAction = (action: 'complete' | 'cancel') => {
     if (!selectedTransaction) return;
 
-    const updatedTransactions = transactions.map(t => {
+    const updatedTransactions = allTransactions.map(t => {
       if (t.id === selectedTransaction.id) {
         return {
           ...t,
@@ -63,7 +91,7 @@ const Transactions = () => {
       return t;
     });
 
-    setTransactions(updatedTransactions);
+    setAllTransactions(updatedTransactions);
     localStorage.setItem('transactions', JSON.stringify(updatedTransactions));
 
     toast({
@@ -87,7 +115,7 @@ const Transactions = () => {
     }
   };
 
-  const pendingTransactions = transactions.filter(t => t.status === "pending");
+  const pendingTransactions = filteredTransactions.filter(t => t.status === "pending");
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -104,13 +132,44 @@ const Transactions = () => {
           <h1 className="text-2xl font-bold">Transaction Records</h1>
         </div>
 
-        {transactions.length === 0 ? (
+        <div className="mb-6 grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium mb-1 block">Filter by Status</label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Orders</SelectItem>
+                <SelectItem value="pending">Pending Orders</SelectItem>
+                <SelectItem value="completed">Completed Orders</SelectItem>
+                <SelectItem value="cancelled">Cancelled Orders</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block">Filter by Payment</label>
+            <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select payment method" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Payments</SelectItem>
+                <SelectItem value="cash">Cash Payments</SelectItem>
+                <SelectItem value="card">Card Payments</SelectItem>
+                <SelectItem value="wallet">E-Wallet Payments</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {filteredTransactions.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg">No transactions found</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {transactions.map((transaction) => (
+            {filteredTransactions.map((transaction) => (
               <div
                 key={transaction.id}
                 className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 p-4 border border-gray-100"
@@ -169,7 +228,7 @@ const Transactions = () => {
             <DialogHeader>
               <DialogTitle>Order #{selectedTransaction?.id}</DialogTitle>
               <DialogDescription>
-                {new Date(selectedTransaction?.timestamp || "").toLocaleString()}
+                {selectedTransaction && new Date(selectedTransaction.timestamp).toLocaleString()}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 overflow-y-auto flex-1 pr-2">

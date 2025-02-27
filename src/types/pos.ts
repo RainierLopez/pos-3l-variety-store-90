@@ -5,6 +5,9 @@ export interface Product {
   price: number;
   quantity: number;
   category: string;
+  barcode: string;
+  image: string;
+  stock: number;
 }
 
 export interface CardDetails {
@@ -27,6 +30,7 @@ export interface Transaction {
     name: string;
     quantity: number;
     price: number;
+    barcode?: string;
   }[];
   customerContact?: string;
   cardDetails?: {
