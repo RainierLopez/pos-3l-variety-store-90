@@ -120,8 +120,8 @@ const Transactions = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white to-pink-50 p-4">
       <div className="max-w-7xl mx-auto glass-panel p-6 rounded-xl shadow-lg border border-white border-opacity-30 bg-white bg-opacity-80">
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="mb-6 flex flex-col items-center justify-center">
+          <div className="flex items-center gap-3 mb-2">
             <Button 
               variant="outline" 
               onClick={() => navigate("/pos")}
@@ -130,8 +130,8 @@ const Transactions = () => {
               <ArrowLeft className="h-4 w-4" />
               Back to POS
             </Button>
-            <h1 className="text-2xl font-bold text-[#8B4513]">Transaction Records</h1>
           </div>
+          <h1 className="text-2xl font-bold text-[#8B4513] text-center">Transactions</h1>
         </div>
 
         <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">

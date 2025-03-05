@@ -1,12 +1,14 @@
 
 import { Button } from "@/components/ui/button";
-import { Printer, ShoppingBag, CreditCard, Wallet, Banknote } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Printer, ShoppingBag, CreditCard, Wallet, Banknote, Barcode, Database, ChevronRight } from "lucide-react";
 import { Product, Transaction } from "@/types/pos";
 import { CartItem } from "./CartItem";
 import { PaymentMethods } from "./PaymentMethods";
 import { CardPayment } from "./payments/CardPayment";
 import { EWalletPayment } from "./payments/EWalletPayment";
 import { CardDetails } from "@/types/pos";
+import { useState } from "react";
 
 interface CartSummaryProps {
   cart: Product[];
@@ -26,6 +28,12 @@ interface CartSummaryProps {
   onPayment: () => void;
   onPrintReceipt: (transaction: Transaction) => void;
   onResetTransaction: () => void;
+  onBarcodeSearch: () => void;
+  barcodeInput: string;
+  onBarcodeInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBarcodeKeyPress: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  isProductCatalogCollapsed: boolean;
+  onToggleProductCatalog: () => void;
 }
 
 export const CartSummary = ({
@@ -46,6 +54,12 @@ export const CartSummary = ({
   onPayment,
   onPrintReceipt,
   onResetTransaction,
+  onBarcodeSearch,
+  barcodeInput,
+  onBarcodeInputChange,
+  onBarcodeKeyPress,
+  isProductCatalogCollapsed,
+  onToggleProductCatalog,
 }: CartSummaryProps) => {
   const getPaymentIcon = () => {
     switch (selectedPaymentMethod) {
@@ -62,6 +76,49 @@ export const CartSummary = ({
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold text-[#8B4513]">Cart</h2>
+        <div className="flex gap-2">
+          <div className="flex gap-2 relative">
+            <Input 
+              placeholder="Enter barcode..."
+              value={barcodeInput}
+              onChange={onBarcodeInputChange}
+              onKeyPress={onBarcodeKeyPress}
+              className="w-40 pl-9 rounded-full bg-white border-2 border-[#8B4513] focus-visible:ring-[#8B4513]"
+            />
+            <Barcode className="absolute left-3 top-2.5 text-[#8B4513] h-4 w-4" />
+            <Button 
+              onClick={onBarcodeSearch}
+              className="rounded-full h-9"
+              style={{ backgroundColor: '#8B4513', color: 'white' }}
+            >
+              Scan
+            </Button>
+          </div>
+          <Button
+            onClick={onToggleProductCatalog}
+            variant="outline"
+            className="flex items-center gap-2 rounded-full shadow-md hover:shadow-lg transition-all hover:border-[#8B4513]"
+          >
+            {isProductCatalogCollapsed ? (
+              <>
+                <ChevronRight className="h-4 w-4" />
+                Show Products
+              </>
+            ) : null}
+          </Button>
+          <Button
+            onClick={() => window.location.href = "/transactions"}
+            variant="outline"
+            className="flex items-center gap-2 rounded-full shadow-md hover:shadow-lg transition-all hover:border-[#8B4513]"
+          >
+            <Database className="h-4 w-4" />
+            Transactions
+          </Button>
+        </div>
+      </div>
+
       <div className="max-h-[400px] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
         {cart.map((item) => (
           <CartItem

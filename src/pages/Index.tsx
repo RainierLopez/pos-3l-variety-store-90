@@ -78,11 +78,6 @@ const Index = () => {
               Login
             </Button>
           </form>
-          <div className="text-center text-sm text-gray-500">
-            <p>Available accounts:</p>
-            <p>Cashier / password</p>
-            <p>Admin / password</p>
-          </div>
         </div>
       </div>
     </div>

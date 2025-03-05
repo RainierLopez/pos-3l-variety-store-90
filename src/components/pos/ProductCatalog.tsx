@@ -4,13 +4,15 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Product } from "@/types/pos";
 import { toast } from "@/hooks/use-toast";
-import { Search, Barcode } from "lucide-react";
+import { Search, Barcode, ChevronLeft } from "lucide-react";
 
 interface ProductCatalogProps {
   products: Product[];
   selectedCategory: string;
   onCategoryChange: (category: string) => void;
   onAddToCart: (product: Product) => void;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
 export const ProductCatalog = ({
@@ -18,42 +20,13 @@ export const ProductCatalog = ({
   selectedCategory,
   onCategoryChange,
   onAddToCart,
+  isCollapsed,
+  onToggleCollapse,
 }: ProductCatalogProps) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [barcodeInput, setBarcodeInput] = useState("");
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-  };
-
-  const handleBarcodeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setBarcodeInput(e.target.value);
-  };
-
-  const handleBarcodeSearch = () => {
-    if (!barcodeInput) return;
-    
-    const product = products.find(p => p.barcode === barcodeInput);
-    if (product) {
-      onAddToCart(product);
-      toast({
-        title: "Product Found",
-        description: `${product.name} has been added to your cart.`,
-      });
-      setBarcodeInput("");
-    } else {
-      toast({
-        title: "Product Not Found",
-        description: "No product matches this barcode.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleBarcodeSearch();
-    }
   };
 
   const filteredProducts = products
@@ -65,11 +38,23 @@ export const ProductCatalog = ({
         : true
     );
 
+  if (isCollapsed) {
+    return (
+      <Button 
+        onClick={onToggleCollapse} 
+        className="fixed left-0 top-1/2 transform -translate-y-1/2 z-10 h-24 rounded-r-full rounded-l-none shadow-lg"
+        style={{ backgroundColor: '#8B4513', color: 'white' }}
+      >
+        <ChevronLeft className="h-6 w-6" />
+      </Button>
+    );
+  }
+
   return (
     <div className="glass-panel p-6 animate-in rounded-xl shadow-lg border border-white border-opacity-30 bg-white bg-opacity-80">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-[#8B4513]">Products</h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           <Button
             onClick={() => onCategoryChange("meat")}
             variant={selectedCategory === "meat" ? "default" : "outline"}
@@ -86,10 +71,17 @@ export const ProductCatalog = ({
           >
             Vegetable
           </Button>
+          <Button
+            onClick={onToggleCollapse}
+            variant="outline"
+            className="rounded-full ml-2"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="mb-6">
         <div className="flex gap-2 relative">
           <Input
             placeholder="Search products..."
@@ -98,23 +90,6 @@ export const ProductCatalog = ({
             className="flex-1 pl-10 rounded-full bg-white border-2 border-[#8B4513] focus-visible:ring-[#8B4513]"
           />
           <Search className="absolute left-3 top-3 text-[#8B4513] h-4 w-4" />
-        </div>
-        <div className="flex gap-2 relative">
-          <Input 
-            placeholder="Enter barcode..."
-            value={barcodeInput}
-            onChange={handleBarcodeInput}
-            onKeyPress={handleKeyPress}
-            className="flex-1 pl-10 rounded-full bg-white border-2 border-[#8B4513] focus-visible:ring-[#8B4513]"
-          />
-          <Barcode className="absolute left-3 top-3 text-[#8B4513] h-4 w-4" />
-          <Button 
-            onClick={handleBarcodeSearch}
-            className="rounded-full"
-            style={{ backgroundColor: '#8B4513', color: 'white' }}
-          >
-            Scan
-          </Button>
         </div>
       </div>
 

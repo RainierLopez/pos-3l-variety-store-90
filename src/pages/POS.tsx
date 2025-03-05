@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -25,6 +26,8 @@ const POS = () => {
     expiryDate: "",
     cvv: "",
   });
+  const [barcodeInput, setBarcodeInput] = useState("");
+  const [isProductCatalogCollapsed, setIsProductCatalogCollapsed] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -35,6 +38,36 @@ const POS = () => {
   useEffect(() => {
     localStorage.setItem("products", JSON.stringify(products));
   }, [products]);
+
+  const handleBarcodeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBarcodeInput(e.target.value);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleBarcodeSearch();
+    }
+  };
+
+  const handleBarcodeSearch = () => {
+    if (!barcodeInput) return;
+    
+    const product = products.find(p => p.barcode === barcodeInput);
+    if (product) {
+      addToCart(product);
+      toast({
+        title: "Product Found",
+        description: `${product.name} has been added to your cart.`,
+      });
+      setBarcodeInput("");
+    } else {
+      toast({
+        title: "Product Not Found",
+        description: "No product matches this barcode.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -444,6 +477,10 @@ const POS = () => {
     navigate("/");
   };
 
+  const toggleProductCatalog = () => {
+    setIsProductCatalogCollapsed(!isProductCatalogCollapsed);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-white to-pink-50">
       <div className="bg-[#8B4513] text-white py-4 px-6 shadow-lg mb-6">
@@ -479,27 +516,21 @@ const POS = () => {
         />
 
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <ProductCatalog
-              products={products}
-              selectedCategory={selectedCategory}
-              onCategoryChange={setSelectedCategory}
-              onAddToCart={addToCart}
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8" style={{ 
+            gridTemplateColumns: isProductCatalogCollapsed ? "0fr 1fr" : "1fr 1fr"
+          }}>
+            {!isProductCatalogCollapsed && (
+              <ProductCatalog
+                products={products}
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+                onAddToCart={addToCart}
+                isCollapsed={isProductCatalogCollapsed}
+                onToggleCollapse={toggleProductCatalog}
+              />
+            )}
 
-            <div className="glass-panel p-6 animate-in rounded-xl shadow-lg border border-white border-opacity-30 bg-white bg-opacity-80">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-[#8B4513]">Cart</h2>
-                <Button
-                  onClick={viewTransactions}
-                  variant="outline"
-                  className="flex items-center gap-2 rounded-full shadow-md hover:shadow-lg transition-all hover:border-[#8B4513]"
-                >
-                  <Database className="h-4 w-4" />
-                  View Transactions
-                </Button>
-              </div>
-
+            <div className={`glass-panel p-6 animate-in rounded-xl shadow-lg border border-white border-opacity-30 bg-white bg-opacity-80 ${isProductCatalogCollapsed ? "col-span-2" : ""}`}>
               <CartSummary
                 cart={cart}
                 total={total}
@@ -518,11 +549,28 @@ const POS = () => {
                 onPayment={handlePayment}
                 onPrintReceipt={handlePrintReceipt}
                 onResetTransaction={resetTransaction}
+                onBarcodeSearch={handleBarcodeSearch}
+                barcodeInput={barcodeInput}
+                onBarcodeInputChange={handleBarcodeInput}
+                onBarcodeKeyPress={handleKeyPress}
+                isProductCatalogCollapsed={isProductCatalogCollapsed}
+                onToggleProductCatalog={toggleProductCatalog}
               />
             </div>
           </div>
         </div>
       </div>
+
+      {isProductCatalogCollapsed && (
+        <ProductCatalog
+          products={products}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          onAddToCart={addToCart}
+          isCollapsed={isProductCatalogCollapsed}
+          onToggleCollapse={toggleProductCatalog}
+        />
+      )}
     </div>
   );
 };
