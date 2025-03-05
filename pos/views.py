@@ -1,14 +1,16 @@
 
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
 from django.utils import timezone
+from django.contrib import messages
 import json
 import uuid
+import datetime
 
 from .models import Product, Transaction, TransactionItem, CardDetail, EWalletReceipt
 from users.models import UserProfile
@@ -24,9 +26,9 @@ def is_admin(user):
 @login_required
 def pos_home(request):
     """Main POS interface view"""
-    products = Product.objects.all()
+    categories = Product.CATEGORY_CHOICES
     context = {
-        'products': products
+        'categories': categories
     }
     return render(request, 'pos/pos_home.html', context)
 
@@ -41,6 +43,7 @@ def transactions_list(request):
     # Filter handling
     status_filter = request.GET.get('status', 'all')
     payment_filter = request.GET.get('payment', 'all')
+    date_filter = request.GET.get('date', 'all')
     
     if status_filter != 'all':
         transactions = transactions.filter(status=status_filter)
@@ -48,10 +51,28 @@ def transactions_list(request):
     if payment_filter != 'all':
         transactions = transactions.filter(payment_method=payment_filter)
     
+    if date_filter == 'today':
+        today = timezone.now().date()
+        transactions = transactions.filter(timestamp__date=today)
+    elif date_filter == 'week':
+        start_of_week = timezone.now().date() - datetime.timedelta(days=timezone.now().weekday())
+        transactions = transactions.filter(timestamp__date__gte=start_of_week)
+    elif date_filter == 'month':
+        today = timezone.now().date()
+        start_of_month = datetime.date(today.year, today.month, 1)
+        transactions = transactions.filter(timestamp__date__gte=start_of_month)
+    
+    # Calculate totals
+    total_amount = sum(t.total for t in transactions)
+    transaction_count = transactions.count()
+    
     context = {
         'transactions': transactions,
         'status_filter': status_filter,
         'payment_filter': payment_filter,
+        'date_filter': date_filter,
+        'total_amount': total_amount,
+        'transaction_count': transaction_count,
     }
     return render(request, 'pos/transactions.html', context)
 
@@ -83,6 +104,11 @@ def print_receipt(request, transaction_id):
         'print_mode': True,
     }
     return render(request, 'pos/receipt.html', context)
+
+@login_required
+def barcode_scanner(request):
+    """Barcode scanner view"""
+    return render(request, 'pos/barcode_scanner.html')
 
 # API endpoints for AJAX requests
 @login_required
@@ -142,11 +168,191 @@ def get_product_by_barcode(request, barcode):
 
 @login_required
 @require_POST
+def add_to_cart(request):
+    """Add a product to cart (session-based)"""
+    try:
+        data = json.loads(request.body)
+        product_id = data.get('product_id')
+        quantity = data.get('quantity', 1)
+        
+        product = get_object_or_404(Product, id=product_id)
+        
+        # Check if product is in stock
+        if product.stock < quantity:
+            return JsonResponse({
+                'success': False,
+                'message': f'Only {product.stock} units available in stock'
+            })
+        
+        # Initialize cart in session if not exists
+        if 'cart' not in request.session:
+            request.session['cart'] = []
+        
+        cart = request.session['cart']
+        
+        # Check if product already in cart
+        product_in_cart = False
+        for item in cart:
+            if item['id'] == product_id:
+                # Check stock constraints
+                if item['quantity'] + quantity > product.stock:
+                    return JsonResponse({
+                        'success': False,
+                        'message': f'Cannot add more. Only {product.stock} units available in stock'
+                    })
+                
+                item['quantity'] += quantity
+                product_in_cart = True
+                break
+        
+        # If product not in cart, add it
+        if not product_in_cart:
+            cart.append({
+                'id': product.id,
+                'name': product.name,
+                'price': float(product.price),
+                'quantity': quantity,
+                'barcode': product.barcode,
+                'image': product.image
+            })
+        
+        # Save the updated cart back to session
+        request.session['cart'] = cart
+        request.session.modified = True
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Added {product.name} to cart',
+            'cart': cart
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=400)
+
+@login_required
+@require_POST
+def update_cart_item(request):
+    """Update cart item quantity"""
+    try:
+        data = json.loads(request.body)
+        product_id = data.get('product_id')
+        quantity = data.get('quantity', 1)
+        
+        # Get the cart from session
+        cart = request.session.get('cart', [])
+        
+        # Find the item and update it
+        for item in cart:
+            if item['id'] == product_id:
+                # If quantity is 0 or less, remove the item
+                if quantity <= 0:
+                    cart.remove(item)
+                else:
+                    # Check stock constraints
+                    product = get_object_or_404(Product, id=product_id)
+                    if quantity > product.stock:
+                        return JsonResponse({
+                            'success': False,
+                            'message': f'Only {product.stock} units available in stock'
+                        })
+                    
+                    item['quantity'] = quantity
+                break
+        
+        # Save the updated cart back to session
+        request.session['cart'] = cart
+        request.session.modified = True
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Cart updated',
+            'cart': cart
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=400)
+
+@login_required
+@require_POST
+def remove_from_cart(request):
+    """Remove an item from cart"""
+    try:
+        data = json.loads(request.body)
+        product_id = data.get('product_id')
+        
+        # Get the cart from session
+        cart = request.session.get('cart', [])
+        
+        # Find the item and remove it
+        for item in cart:
+            if item['id'] == product_id:
+                cart.remove(item)
+                break
+        
+        # Save the updated cart back to session
+        request.session['cart'] = cart
+        request.session.modified = True
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Item removed from cart',
+            'cart': cart
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=400)
+
+@login_required
+@require_GET
+def get_cart(request):
+    """Get the current cart contents"""
+    cart = request.session.get('cart', [])
+    
+    # Calculate total
+    total = sum(item['price'] * item['quantity'] for item in cart)
+    
+    return JsonResponse({
+        'success': True,
+        'cart': cart,
+        'total': total,
+        'item_count': len(cart)
+    })
+
+@login_required
+@require_POST
+def clear_cart(request):
+    """Clear the entire cart"""
+    request.session['cart'] = []
+    request.session.modified = True
+    
+    return JsonResponse({
+        'success': True,
+        'message': 'Cart cleared'
+    })
+
+@login_required
+@require_POST
 @csrf_exempt
 def create_transaction(request):
     """API endpoint to create a new transaction"""
     try:
         data = json.loads(request.body)
+        cart = request.session.get('cart', [])
+        
+        if not cart:
+            return JsonResponse({
+                'success': False,
+                'message': 'Cart is empty'
+            }, status=400)
         
         with transaction.atomic():
             # Create the transaction
@@ -159,26 +365,25 @@ def create_transaction(request):
             )
             
             # Create transaction items
-            for item_data in data['items']:
+            for item in cart:
                 product = None
-                if 'barcode' in item_data and item_data['barcode']:
-                    try:
-                        product = Product.objects.get(barcode=item_data['barcode'])
-                        # Update stock
-                        product.stock -= item_data['quantity']
-                        if product.stock < 0:
-                            product.stock = 0
-                        product.save()
-                    except Product.DoesNotExist:
-                        pass
+                try:
+                    product = Product.objects.get(id=item['id'])
+                    # Update stock
+                    product.stock -= item['quantity']
+                    if product.stock < 0:
+                        product.stock = 0
+                    product.save()
+                except Product.DoesNotExist:
+                    pass
                 
                 TransactionItem.objects.create(
                     transaction=new_transaction,
                     product=product,
-                    name=item_data['name'],
-                    quantity=item_data['quantity'],
-                    price=item_data['price'],
-                    barcode=item_data.get('barcode', '')
+                    name=item['name'],
+                    quantity=item['quantity'],
+                    price=item['price'],
+                    barcode=item.get('barcode', '')
                 )
             
             # Handle card payment
@@ -193,6 +398,10 @@ def create_transaction(request):
             if data['payment_method'] == 'card':
                 new_transaction.status = 'completed'
                 new_transaction.save()
+            
+            # Clear the cart in session
+            request.session['cart'] = []
+            request.session.modified = True
         
         return JsonResponse({
             'success': True, 
@@ -220,6 +429,10 @@ def upload_ewallet_receipt(request, transaction_id):
         transaction.status = 'completed'
         transaction.save()
         
+        # Clear the cart in session (just to be safe)
+        request.session['cart'] = []
+        request.session.modified = True
+        
         return JsonResponse({'success': True})
     
     return JsonResponse({'success': False, 'message': 'No file uploaded'}, status=400)
@@ -231,13 +444,16 @@ def update_transaction_status(request, transaction_id):
     """Update transaction status (admin only)"""
     transaction = get_object_or_404(Transaction, id=transaction_id)
     status = request.POST.get('status')
+    customer_contact = request.POST.get('customer_contact')
     
-    if status in [s[0] for s in Transaction.STATUS_CHOICES]:
+    if status and status in [s[0] for s in Transaction.STATUS_CHOICES]:
         transaction.status = status
-        transaction.save()
-        return JsonResponse({'success': True})
+        
+    if customer_contact:
+        transaction.customer_contact = customer_contact
     
-    return JsonResponse({'success': False, 'message': 'Invalid status'}, status=400)
+    transaction.save()
+    return JsonResponse({'success': True})
 
 @login_required
 @user_passes_test(is_admin)
@@ -280,7 +496,10 @@ def add_product(request):
         except Exception as e:
             messages.error(request, f'Error adding product: {str(e)}')
     
-    return render(request, 'pos/add_product.html')
+    context = {
+        'categories': Product.CATEGORY_CHOICES
+    }
+    return render(request, 'pos/add_product.html', context)
 
 @login_required
 @user_passes_test(is_admin)
@@ -304,7 +523,8 @@ def edit_product(request, product_id):
             messages.error(request, f'Error updating product: {str(e)}')
     
     context = {
-        'product': product
+        'product': product,
+        'categories': Product.CATEGORY_CHOICES
     }
     return render(request, 'pos/edit_product.html', context)
 
@@ -335,11 +555,11 @@ def sales_report(request):
     transactions = Transaction.objects.filter(status='completed').order_by('-timestamp')
     
     if start_date:
-        start_date = timezone.datetime.strptime(start_date, '%Y-%m-%d').date()
+        start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d').date()
         transactions = transactions.filter(timestamp__date__gte=start_date)
     
     if end_date:
-        end_date = timezone.datetime.strptime(end_date, '%Y-%m-%d').date()
+        end_date = datetime.datetime.strptime(end_date, '%Y-%m-%d').date()
         transactions = transactions.filter(timestamp__date__lte=end_date)
     
     # Calculate totals
@@ -359,11 +579,30 @@ def sales_report(request):
                 'total': t.total
             }
     
+    # Get top selling products
+    top_products = {}
+    for t in transactions:
+        for item in t.items.all():
+            if item.product_id in top_products:
+                top_products[item.product_id]['quantity'] += item.quantity
+                top_products[item.product_id]['sales'] += item.price * item.quantity
+            else:
+                top_products[item.product_id] = {
+                    'name': item.name,
+                    'quantity': item.quantity,
+                    'sales': item.price * item.quantity
+                }
+    
+    # Convert to list and sort by sales
+    top_products_list = [{'id': k, **v} for k, v in top_products.items()]
+    top_products_list.sort(key=lambda x: x['sales'], reverse=True)
+    
     context = {
         'transactions': transactions,
         'total_sales': total_sales,
         'total_transactions': total_transactions,
         'payment_methods': payment_methods,
+        'top_products': top_products_list[:10],  # Top 10 products
         'start_date': start_date,
         'end_date': end_date
     }

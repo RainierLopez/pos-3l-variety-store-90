@@ -9,6 +9,9 @@ urlpatterns = [
     path('transactions/<uuid:transaction_id>/', views.transaction_detail, name='transaction_detail'),
     path('print-receipt/<uuid:transaction_id>/', views.print_receipt, name='print_receipt'),
     
+    # Barcode Scanner
+    path('scan/', views.barcode_scanner, name='barcode_scanner'),
+    
     # Inventory Management
     path('inventory/', views.inventory_management, name='inventory_management'),
     path('inventory/add/', views.add_product, name='add_product'),
@@ -18,14 +21,20 @@ urlpatterns = [
     # Reports
     path('reports/sales/', views.sales_report, name='sales_report'),
     
-    # API endpoints
+    # API endpoints - Products
     path('api/products/', views.get_products, name='get_products'),
     path('api/products/<int:product_id>/', views.get_product, name='get_product'),
     path('api/products/barcode/<str:barcode>/', views.get_product_by_barcode, name='get_product_by_barcode'),
+    
+    # API endpoints - Cart
+    path('api/cart/', views.get_cart, name='get_cart'),
+    path('api/cart/add/', views.add_to_cart, name='add_to_cart'),
+    path('api/cart/update/', views.update_cart_item, name='update_cart_item'),
+    path('api/cart/remove/', views.remove_from_cart, name='remove_from_cart'),
+    path('api/cart/clear/', views.clear_cart, name='clear_cart'),
+    
+    # API endpoints - Transactions
     path('api/transactions/create/', views.create_transaction, name='create_transaction'),
     path('api/transactions/<uuid:transaction_id>/upload-receipt/', views.upload_ewallet_receipt, name='upload_ewallet_receipt'),
     path('api/transactions/<uuid:transaction_id>/update-status/', views.update_transaction_status, name='update_transaction_status'),
-    
-    # Barcode scanner routes
-    path('scan/', views.barcode_scanner, name='barcode_scanner'),
 ]
