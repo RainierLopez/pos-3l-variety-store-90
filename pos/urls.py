@@ -9,9 +9,6 @@ urlpatterns = [
     path('transactions/<uuid:transaction_id>/', views.transaction_detail, name='transaction_detail'),
     path('print-receipt/<uuid:transaction_id>/', views.print_receipt, name='print_receipt'),
     
-    # Barcode Scanner
-    path('scan/', views.barcode_scanner, name='barcode_scanner'),
-    
     # Inventory Management
     path('inventory/', views.inventory_management, name='inventory_management'),
     path('inventory/add/', views.add_product, name='add_product'),

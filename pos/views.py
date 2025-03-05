@@ -105,11 +105,6 @@ def print_receipt(request, transaction_id):
     }
     return render(request, 'pos/receipt.html', context)
 
-@login_required
-def barcode_scanner(request):
-    """Barcode scanner view"""
-    return render(request, 'pos/barcode_scanner.html')
-
 # API endpoints for AJAX requests
 @login_required
 @require_GET
