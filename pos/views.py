@@ -1,6 +1,6 @@
 
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
@@ -18,8 +18,8 @@ from users.models import UserProfile
 @login_required
 def pos_home(request):
     """Main POS interface"""
-    products = Product.objects.all()
-    categories = Product._meta.get_field('category').choices
+    products = Product.objects.all().order_by('category', 'name')
+    categories = dict(Product.CATEGORY_CHOICES)
     
     # Get session cart or initialize empty one
     cart = request.session.get('cart', [])
@@ -28,8 +28,10 @@ def pos_home(request):
         'products': products,
         'categories': categories,
         'cart': cart,
+        'cart_count': sum(item.get('quantity', 0) for item in cart),
+        'cart_total': sum(item.get('price', 0) * item.get('quantity', 0) for item in cart),
     }
-    return render(request, 'pos/home.html', context)
+    return render(request, 'pos/pos_home.html', context)
 
 # Transaction views
 @login_required
@@ -47,10 +49,21 @@ def transactions_list(request):
     if payment_filter != 'all':
         transactions = transactions.filter(payment_method=payment_filter)
     
+    # For dashboard stats
+    pending_count = Transaction.objects.filter(status='pending').count()
+    completed_count = Transaction.objects.filter(status='completed').count()
+    cancelled_count = Transaction.objects.filter(status='cancelled').count()
+    
+    total_sales = Transaction.objects.filter(status='completed').aggregate(total=Sum('total'))['total'] or 0
+    
     context = {
         'transactions': transactions,
         'status_filter': status_filter,
         'payment_filter': payment_filter,
+        'pending_count': pending_count,
+        'completed_count': completed_count, 
+        'cancelled_count': cancelled_count,
+        'total_sales': total_sales,
     }
     return render(request, 'pos/transactions.html', context)
 
@@ -58,7 +71,20 @@ def transactions_list(request):
 def transaction_detail(request, transaction_id):
     """View transaction details"""
     transaction = get_object_or_404(Transaction, id=transaction_id)
-    return render(request, 'pos/transaction_detail.html', {'transaction': transaction})
+    
+    if request.method == 'POST' and 'update_status' in request.POST:
+        new_status = request.POST.get('status')
+        if new_status in dict(Transaction.STATUS_CHOICES):
+            transaction.status = new_status
+            transaction.save()
+            messages.success(request, f'Transaction status updated to {transaction.get_status_display()}')
+            return redirect('transaction_detail', transaction_id=transaction.id)
+    
+    context = {
+        'transaction': transaction,
+        'status_choices': Transaction.STATUS_CHOICES,
+    }
+    return render(request, 'pos/transaction_detail.html', context)
 
 @login_required
 def print_receipt(request, transaction_id):
@@ -74,13 +100,46 @@ def print_receipt(request, transaction_id):
 @login_required
 def inventory_management(request):
     """Inventory management interface"""
-    products = Product.objects.all().order_by('category', 'name')
-    return render(request, 'pos/inventory.html', {'products': products})
+    category_filter = request.GET.get('category', '')
+    search_query = request.GET.get('search', '')
+    
+    products = Product.objects.all()
+    
+    if category_filter:
+        products = products.filter(category=category_filter)
+    
+    if search_query:
+        products = products.filter(
+            Q(name__icontains=search_query) | 
+            Q(barcode__icontains=search_query)
+        )
+    
+    products = products.order_by('category', 'name')
+    
+    # Stats for dashboard
+    total_products = Product.objects.count()
+    low_stock_products = Product.objects.filter(stock__lt=10).count()
+    out_of_stock_products = Product.objects.filter(stock=0).count()
+    
+    context = {
+        'products': products,
+        'categories': Product.CATEGORY_CHOICES,
+        'category_filter': category_filter,
+        'search_query': search_query,
+        'total_products': total_products,
+        'low_stock_products': low_stock_products,
+        'out_of_stock_products': out_of_stock_products,
+    }
+    return render(request, 'pos/inventory.html', context)
 
 @login_required
 def add_product(request):
     """Add a new product"""
-    categories = Product._meta.get_field('category').choices
+    if not request.user.profile.role == 'admin':
+        messages.error(request, 'You do not have permission to add products.')
+        return redirect('inventory_management')
+        
+    categories = Product.CATEGORY_CHOICES
     
     if request.method == 'POST':
         # Process form submission
@@ -91,17 +150,31 @@ def add_product(request):
         stock = request.POST.get('stock', 0)
         image = request.POST.get('image', '')
         
-        # Create new product
-        product = Product(
-            name=name,
-            price=price,
-            category=category,
-            barcode=barcode,
-            stock=stock,
-            image=image
-        )
+        if not name or not price or not category or not barcode:
+            messages.error(request, 'All required fields must be filled.')
+            return render(request, 'pos/add_product.html', {
+                'categories': categories,
+                'form_data': request.POST,
+            })
         
+        # Check if barcode already exists
+        if Product.objects.filter(barcode=barcode).exists():
+            messages.error(request, f'A product with barcode {barcode} already exists.')
+            return render(request, 'pos/add_product.html', {
+                'categories': categories,
+                'form_data': request.POST,
+            })
+        
+        # Create new product
         try:
+            product = Product(
+                name=name,
+                price=price,
+                category=category,
+                barcode=barcode,
+                stock=stock,
+                image=image
+            )
             product.save()
             messages.success(request, f'Product "{name}" has been added successfully.')
             return redirect('inventory_management')
@@ -113,8 +186,12 @@ def add_product(request):
 @login_required
 def edit_product(request, product_id):
     """Edit an existing product"""
+    if not request.user.profile.role == 'admin':
+        messages.error(request, 'You do not have permission to edit products.')
+        return redirect('inventory_management')
+        
     product = get_object_or_404(Product, id=product_id)
-    categories = Product._meta.get_field('category').choices
+    categories = Product.CATEGORY_CHOICES
     
     if request.method == 'POST':
         # Update product with form data
@@ -124,6 +201,14 @@ def edit_product(request, product_id):
         product.barcode = request.POST.get('barcode')
         product.stock = request.POST.get('stock', 0)
         product.image = request.POST.get('image', '')
+        
+        # Validate barcode uniqueness
+        if Product.objects.exclude(id=product_id).filter(barcode=product.barcode).exists():
+            messages.error(request, f'A product with barcode {product.barcode} already exists.')
+            return render(request, 'pos/edit_product.html', {
+                'product': product,
+                'categories': categories
+            })
         
         try:
             product.save()
@@ -140,6 +225,10 @@ def edit_product(request, product_id):
 @login_required
 def delete_product(request, product_id):
     """Delete a product"""
+    if not request.user.profile.role == 'admin':
+        messages.error(request, 'You do not have permission to delete products.')
+        return redirect('inventory_management')
+        
     product = get_object_or_404(Product, id=product_id)
     
     if request.method == 'POST':
@@ -157,6 +246,10 @@ def delete_product(request, product_id):
 @login_required
 def sales_report(request):
     """Sales report view"""
+    if not request.user.profile.role == 'admin':
+        messages.error(request, 'You do not have permission to view reports.')
+        return redirect('pos_home')
+        
     # Get date range from request or use default (last 30 days)
     end_date = timezone.now().date()
     start_date = request.GET.get('start_date', (end_date - timedelta(days=30)).isoformat())
@@ -185,7 +278,7 @@ def sales_report(request):
     
     # Payment method breakdown
     payment_methods = {}
-    for method_id, method_name in Transaction._meta.get_field('payment_method').choices:
+    for method_id, method_name in Transaction.PAYMENT_CHOICES:
         payment_transactions = transactions.filter(payment_method=method_id)
         payment_methods[method_name] = {
             'count': payment_transactions.count(),
@@ -193,44 +286,52 @@ def sales_report(request):
         }
     
     # Top selling products
-    top_products = []
-    items = TransactionItem.objects.filter(transaction__in=transactions)
+    top_products = TransactionItem.objects.filter(
+        transaction__in=transactions
+    ).values(
+        'product__name'
+    ).annotate(
+        total_quantity=Sum('quantity'),
+        total_sales=Sum(F('quantity') * F('price'))
+    ).order_by('-total_sales')[:10]
     
-    # Group by product and calculate total sales
-    products_data = {}
-    for item in items:
-        if item.product_id not in products_data:
-            products_data[item.product_id] = {
-                'name': item.name,
-                'quantity': 0,
-                'sales': 0
-            }
-        products_data[item.product_id]['quantity'] += item.quantity
-        products_data[item.product_id]['sales'] += item.quantity * item.price
-    
-    # Convert to list and sort by sales
-    top_products = sorted(
-        products_data.values(),
-        key=lambda x: x['sales'],
-        reverse=True
-    )[:10]  # Top 10 products
+    # Daily sales for chart
+    daily_sales = transactions.values(
+        'timestamp__date'
+    ).annotate(
+        date=F('timestamp__date'),
+        total=Sum('total')
+    ).values('date', 'total').order_by('date')
     
     context = {
         'start_date': start_date,
-        'end_date': end_date,
+        'end_date': end_date.date(),
         'total_sales': total_sales,
         'total_transactions': total_transactions,
         'payment_methods': payment_methods,
         'top_products': top_products,
+        'daily_sales': daily_sales,
         'transactions': transactions,
     }
     return render(request, 'pos/sales_report.html', context)
+
+# Barcode Scanner
+@login_required
+def barcode_scanner(request):
+    """Barcode scanner interface"""
+    return render(request, 'pos/barcode_scanner.html')
 
 # API endpoints for AJAX requests
 @login_required
 def get_products(request):
     """API: Get all products"""
+    category = request.GET.get('category', '')
+    
     products = Product.objects.all()
+    
+    if category:
+        products = products.filter(category=category)
+    
     products_data = []
     
     for product in products:
@@ -240,7 +341,7 @@ def get_products(request):
             'price': float(product.price),
             'category': product.category,
             'barcode': product.barcode,
-            'image': product.image,
+            'image': product.image or '/static/images/placeholder.svg',
             'stock': product.stock
         })
     
@@ -257,7 +358,30 @@ def get_product(request, product_id):
             'price': float(product.price),
             'category': product.category,
             'barcode': product.barcode,
-            'image': product.image,
+            'image': product.image or '/static/images/placeholder.svg',
+            'stock': product.stock
+        }
+        return JsonResponse(product_data)
+    except Product.DoesNotExist:
+        return JsonResponse({'error': 'Product not found'}, status=404)
+
+@login_required
+def get_product_by_barcode(request):
+    """API: Get product by barcode"""
+    barcode = request.GET.get('barcode', '')
+    
+    if not barcode:
+        return JsonResponse({'error': 'No barcode provided'}, status=400)
+    
+    try:
+        product = Product.objects.get(barcode=barcode)
+        product_data = {
+            'id': product.id,
+            'name': product.name,
+            'price': float(product.price),
+            'category': product.category,
+            'barcode': product.barcode,
+            'image': product.image or '/static/images/placeholder.svg',
             'stock': product.stock
         }
         return JsonResponse(product_data)
@@ -303,7 +427,13 @@ def add_to_cart(request):
         found = False
         for item in cart:
             if item['id'] == product_id:
-                item['quantity'] += quantity
+                new_quantity = item['quantity'] + quantity
+                
+                # Check if new quantity exceeds stock
+                if new_quantity > product.stock:
+                    return JsonResponse({'error': 'Not enough stock'}, status=400)
+                    
+                item['quantity'] = new_quantity
                 found = True
                 break
         
@@ -314,13 +444,25 @@ def add_to_cart(request):
                 'name': product.name,
                 'price': float(product.price),
                 'quantity': quantity,
-                'image': product.image,
-                'barcode': product.barcode
+                'image': product.image or '/static/images/placeholder.svg',
+                'barcode': product.barcode,
+                'category': product.category,
+                'stock': product.stock
             })
         
         # Update session
         request.session['cart'] = cart
-        return JsonResponse({'success': True, 'cart': cart})
+        
+        # Calculate cart totals
+        cart_total = sum(item['price'] * item['quantity'] for item in cart)
+        cart_items = sum(item['quantity'] for item in cart)
+        
+        return JsonResponse({
+            'success': True, 
+            'cart': cart,
+            'cart_total': cart_total,
+            'cart_items': cart_items
+        })
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
@@ -341,6 +483,16 @@ def update_cart_item(request):
         if quantity <= 0:
             return JsonResponse({'error': 'Invalid quantity'}, status=400)
         
+        # Get product
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return JsonResponse({'error': 'Product not found'}, status=404)
+            
+        # Check if new quantity exceeds stock
+        if quantity > product.stock:
+            return JsonResponse({'error': 'Not enough stock'}, status=400)
+        
         # Get cart from session
         cart = request.session.get('cart', [])
         
@@ -348,14 +500,6 @@ def update_cart_item(request):
         found = False
         for item in cart:
             if item['id'] == product_id:
-                # Check stock
-                try:
-                    product = Product.objects.get(id=product_id)
-                    if product.stock < quantity:
-                        return JsonResponse({'error': 'Not enough stock'}, status=400)
-                except Product.DoesNotExist:
-                    pass  # Allow updating even if product was deleted
-                
                 item['quantity'] = quantity
                 found = True
                 break
@@ -365,7 +509,17 @@ def update_cart_item(request):
         
         # Update session
         request.session['cart'] = cart
-        return JsonResponse({'success': True, 'cart': cart})
+        
+        # Calculate cart totals
+        cart_total = sum(item['price'] * item['quantity'] for item in cart)
+        cart_items = sum(item['quantity'] for item in cart)
+        
+        return JsonResponse({
+            'success': True, 
+            'cart': cart,
+            'cart_total': cart_total,
+            'cart_items': cart_items
+        })
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
@@ -389,7 +543,17 @@ def remove_from_cart(request):
         
         # Update session
         request.session['cart'] = updated_cart
-        return JsonResponse({'success': True, 'cart': updated_cart})
+        
+        # Calculate cart totals
+        cart_total = sum(item['price'] * item['quantity'] for item in updated_cart)
+        cart_items = sum(item['quantity'] for item in updated_cart)
+        
+        return JsonResponse({
+            'success': True, 
+            'cart': updated_cart,
+            'cart_total': cart_total,
+            'cart_items': cart_items
+        })
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
@@ -403,7 +567,12 @@ def clear_cart(request):
     
     # Clear cart in session
     request.session['cart'] = []
-    return JsonResponse({'success': True, 'cart': []})
+    return JsonResponse({
+        'success': True, 
+        'cart': [],
+        'cart_total': 0,
+        'cart_items': 0
+    })
 
 @login_required
 @csrf_exempt
@@ -417,11 +586,23 @@ def create_transaction(request):
         payment_method = data.get('payment_method', 'cash')
         customer_contact = data.get('customer_contact', '')
         
+        # Validate payment method
+        if payment_method not in dict(Transaction.PAYMENT_CHOICES):
+            return JsonResponse({'error': f'Invalid payment method: {payment_method}'}, status=400)
+            
         # Get cart from session
         cart = request.session.get('cart', [])
         
         if not cart:
             return JsonResponse({'error': 'Cart is empty'}, status=400)
+        
+        # Validate stock for all items
+        for item in cart:
+            product = Product.objects.get(id=item['id'])
+            if product.stock < item['quantity']:
+                return JsonResponse({
+                    'error': f'Not enough stock for {product.name}. Available: {product.stock}, Requested: {item["quantity"]}'
+                }, status=400)
         
         # Calculate total
         total = sum(item['price'] * item['quantity'] for item in cart)
@@ -437,6 +618,7 @@ def create_transaction(request):
         
         # Create transaction items and update stock
         for item in cart:
+            # Create transaction item
             TransactionItem.objects.create(
                 transaction=transaction,
                 product_id=item['id'],
@@ -447,23 +629,27 @@ def create_transaction(request):
             )
             
             # Update product stock
-            try:
-                product = Product.objects.get(id=item['id'])
-                product.stock -= item['quantity']
-                product.save()
-            except Product.DoesNotExist:
-                pass  # Skip if product was deleted
+            product = Product.objects.get(id=item['id'])
+            product.stock -= item['quantity']
+            product.save()
         
-        # If payment method is cash, transaction is pending
-        # If card or wallet, need additional info but mark as completed
+        # Process card details if payment method is card
+        if payment_method == 'card' and 'card_details' in data:
+            card_details = data.get('card_details', {})
+            card_number = card_details.get('card_number', '')
+            expiry_date = card_details.get('expiry_date', '')
+            
+            if card_number and expiry_date:
+                CardDetail.objects.create(
+                    transaction=transaction,
+                    card_number=card_number[-4:],  # Only store last 4 digits
+                    expiry_date=expiry_date
+                )
+        
+        # If payment method is cash, mark as completed
         if payment_method == 'cash':
-            pass  # Keep as pending
-        elif payment_method == 'card':
-            # Card details will be added in separate request
-            pass
-        elif payment_method == 'wallet':
-            # Receipt will be uploaded in separate request
-            pass
+            transaction.status = 'completed'
+            transaction.save()
         
         # Return transaction details
         transaction_data = {
@@ -477,6 +663,7 @@ def create_transaction(request):
                     'name': item.name,
                     'quantity': item.quantity,
                     'price': float(item.price),
+                    'subtotal': float(item.price * item.quantity),
                     'barcode': item.barcode
                 }
                 for item in transaction.items.all()
@@ -546,8 +733,10 @@ def update_transaction_status(request, transaction_id):
         if not request.user.profile.role == 'admin':
             return JsonResponse({'error': 'Permission denied'}, status=403)
         
-        status = request.POST.get('status')
-        if status not in [s[0] for s in Transaction.STATUS_CHOICES]:
+        data = json.loads(request.body)
+        status = data.get('status')
+        
+        if status not in dict(Transaction.STATUS_CHOICES):
             return JsonResponse({'error': 'Invalid status'}, status=400)
         
         # Update status

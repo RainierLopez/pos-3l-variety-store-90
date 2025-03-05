@@ -1,5 +1,5 @@
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth.models import User
@@ -48,13 +48,12 @@ def register_user(request):
         profile_form = UserProfileForm(request.POST)
         
         if user_form.is_valid() and profile_form.is_valid():
-            user = user_form.save(commit=False)
-            user.set_password(user_form.cleaned_data['password1'])
-            user.save()
+            user = user_form.save()
             
             # Create user profile
-            profile = profile_form.save(commit=False)
-            profile.user = user
+            profile = user.profile
+            profile.role = profile_form.cleaned_data['role']
+            profile.phone = profile_form.cleaned_data['phone']
             profile.save()
             
             messages.success(request, f'User {user.username} has been created successfully.')
@@ -87,5 +86,23 @@ def user_detail(request, user_id):
         messages.error(request, 'You do not have permission to view this page.')
         return redirect('pos_home')
     
-    user = User.objects.get(id=user_id)
-    return render(request, 'users/user_detail.html', {'user': user})
+    user = get_object_or_404(User, id=user_id)
+    
+    if request.method == 'POST':
+        user_form = RegisterForm(request.POST, instance=user)
+        profile_form = UserProfileForm(request.POST, instance=user.profile)
+        
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile_form.save()
+            messages.success(request, f'User {user.username} has been updated successfully.')
+            return redirect('user_list')
+    else:
+        user_form = RegisterForm(instance=user)
+        profile_form = UserProfileForm(instance=user.profile)
+    
+    return render(request, 'users/user_detail.html', {
+        'user': user,
+        'user_form': user_form,
+        'profile_form': profile_form
+    })

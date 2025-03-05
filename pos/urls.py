@@ -18,9 +18,13 @@ urlpatterns = [
     # Reports
     path('reports/sales/', views.sales_report, name='sales_report'),
     
+    # Barcode Scanner
+    path('barcode-scanner/', views.barcode_scanner, name='barcode_scanner'),
+    
     # API endpoints - Products
     path('api/products/', views.get_products, name='get_products'),
     path('api/products/<int:product_id>/', views.get_product, name='get_product'),
+    path('api/products/barcode/', views.get_product_by_barcode, name='get_product_by_barcode'),
     
     # API endpoints - Cart
     path('api/cart/', views.get_cart, name='get_cart'),
