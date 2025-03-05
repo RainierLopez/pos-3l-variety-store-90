@@ -25,4 +25,7 @@ urlpatterns = [
     path('api/transactions/create/', views.create_transaction, name='create_transaction'),
     path('api/transactions/<uuid:transaction_id>/upload-receipt/', views.upload_ewallet_receipt, name='upload_ewallet_receipt'),
     path('api/transactions/<uuid:transaction_id>/update-status/', views.update_transaction_status, name='update_transaction_status'),
+    
+    # Barcode scanner routes
+    path('scan/', views.barcode_scanner, name='barcode_scanner'),
 ]

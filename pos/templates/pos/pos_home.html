@@ -2,773 +2,247 @@
 {% extends 'pos/base.html' %}
 {% load static %}
 
-{% block title %}POS Interface - Variety Store POS{% endblock %}
+{% block title %}3-L Variety Store POS{% endblock %}
 
-{% block extra_css %}
-<style>
-    .glass-panel {
-        background-color: rgba(255, 255, 255, 0.5);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 1rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    .animate-in {
-        animation: fadeIn 0.5s ease-out;
-    }
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    .product-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 1rem;
-    }
-    .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-        background: rgba(139, 69, 19, 0.1);
-        border-radius: 10px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: rgba(139, 69, 19, 0.5);
-        border-radius: 10px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: rgba(139, 69, 19, 0.7);
-    }
-</style>
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
 {% endblock %}
 
 {% block content %}
-<div id="pos-interface" class="flex flex-col md:flex-row gap-6">
-    <!-- Product Catalog Panel -->
-    <div id="product-catalog" class="w-full md:w-2/3 glass-panel p-6 animate-in rounded-xl shadow-lg border border-white border-opacity-30 bg-white bg-opacity-80">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-[#8B4513]">Products</h2>
-            <div class="flex gap-2 items-center">
-                <button 
-                    id="category-meat" 
-                    class="category-btn px-4 py-2 rounded-full shadow-md transition-all hover:scale-105 bg-[#8B4513] text-white"
-                    data-category="meat"
-                >
-                    Meat
-                </button>
-                <button 
-                    id="category-vegetable" 
-                    class="category-btn px-4 py-2 rounded-full shadow-md transition-all hover:scale-105 border border-gray-300"
-                    data-category="vegetable"
-                >
-                    Vegetable
-                </button>
-            </div>
-        </div>
-
-        <div class="mb-6">
-            <div class="flex gap-2 relative">
-                <input
-                    id="product-search"
-                    type="text"
-                    placeholder="Search products..."
-                    class="w-full pl-10 rounded-full bg-white border-2 border-[#8B4513] focus:ring-[#8B4513]"
-                />
-                <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-3 text-[#8B4513] h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-            </div>
-        </div>
-
-        <div class="product-grid">
-            {% for product in products %}
-                {% if product.category == 'meat' %}
+<div class="min-h-screen bg-gradient-to-br from-white to-pink-50">
+    <div class="bg-[#8B4513] text-white py-4 px-6 shadow-lg mb-6">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">3-L Variety Store</h1>
+            <div class="flex items-center gap-4">
                 <button
-                    class="product-item p-4 bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 text-left flex flex-col h-full border border-gray-100 hover:border-[#8B4513] hover:scale-105 group"
-                    data-name="{{ product.name }}"
-                    data-barcode="{{ product.barcode }}"
-                    data-category="{{ product.category }}"
-                    data-product-id="{{ product.id }}"
+                    id="generate-barcode-list"
+                    class="text-white hover:text-white/80 hover:bg-white/10 flex items-center gap-2 px-4 py-2 rounded-md transition"
                 >
-                    <div class="flex-shrink-0 h-32 w-full mb-2 overflow-hidden rounded-md bg-gray-100 relative">
-                        {% if product.image %}
-                            <img 
-                                src="{{ product.image }}" 
-                                alt="{{ product.name }}"
-                                class="h-full w-full object-cover transition-all group-hover:scale-110"
-                                onerror="this.src='{% static 'pos/images/placeholder.svg' %}'"
-                            />
-                        {% else %}
-                            <img 
-                                src="{% static 'pos/images/placeholder.svg' %}" 
-                                alt="{{ product.name }}"
-                                class="h-full w-full object-cover transition-all group-hover:scale-110"
-                            />
-                        {% endif %}
-                        <div class="absolute bottom-0 right-0 bg-[#8B4513] text-white text-xs px-2 py-1 rounded-tl-md">
-                            #{{ product.barcode|slice:"-4:" }}
-                        </div>
-                    </div>
-                    <div class="flex-1">
-                        <h3 class="font-medium line-clamp-2 group-hover:text-[#8B4513]">{{ product.name }}</h3>
-                        <p class="text-[#8B4513] font-bold text-lg">₱{{ product.price }}</p>
-                        <div class="mt-1 flex items-center justify-between">
-                            <span class="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-700">
-                                Stock: {{ product.stock }}
-                            </span>
-                            <span class="text-xs text-[#8B4513] opacity-0 group-hover:opacity-100 transition-opacity">
-                                Add to cart
-                            </span>
-                        </div>
-                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+                    Generate Barcode List
                 </button>
-                {% endif %}
-            {% endfor %}
-        </div>
-    </div>
-
-    <!-- Cart Panel -->
-    <div class="w-full md:w-1/3 glass-panel p-6 rounded-xl shadow-lg border border-white border-opacity-30 bg-white bg-opacity-80">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-2xl font-bold text-[#8B4513]">Cart</h2>
-            <div class="flex gap-2">
-                <form id="barcode-form" class="flex gap-2 relative">
-                    {% csrf_token %}
-                    <input 
-                        id="barcode-input"
-                        type="text"
-                        placeholder="Enter barcode..."
-                        class="w-40 pl-9 rounded-full bg-white border-2 border-[#8B4513] focus:ring-[#8B4513]"
-                    />
-                    <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-2.5 text-[#8B4513] h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                    </svg>
-                    <button 
-                        type="submit"
-                        class="rounded-full h-9 bg-[#8B4513] text-white px-4"
-                    >
-                        Scan
-                    </button>
-                </form>
-                <a
-                    href="{% url 'transactions_list' %}"
-                    class="flex items-center gap-2 rounded-full shadow-md hover:shadow-lg transition-all hover:border-[#8B4513] border border-gray-300 px-4 py-2"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
-                    </svg>
-                    Transactions
+                <a href="{% url 'logout' %}" class="text-white hover:text-white/80 hover:bg-white/10 p-2 rounded-md transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-log-out"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 </a>
             </div>
         </div>
+    </div>
 
-        <div id="cart-items" class="max-h-[400px] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
-            <div class="text-center py-12">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                </svg>
-                <p class="text-gray-500 text-lg">Cart is empty. Add some products!</p>
+    <div class="p-4">
+        <div id="phone-number-dialog" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg p-6 w-full max-w-md">
+                <h2 class="text-xl font-bold mb-4">Send Receipt via SMS</h2>
+                <p class="text-gray-600 mb-4">Enter the customer's phone number to send the receipt.</p>
+                <div class="mb-4">
+                    <input type="text" id="phone-number-input" class="w-full border-2 border-gray-300 rounded-lg p-2 focus:border-[#8B4513] focus:outline-none" placeholder="Enter 11-digit phone number" maxlength="11" pattern="[0-9]{11}">
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button id="cancel-send-receipt" class="px-4 py-2 border border-gray-300 rounded-lg">Cancel</button>
+                    <button id="confirm-send-receipt" class="px-4 py-2 bg-[#8B4513] text-white rounded-lg">Send Receipt</button>
+                </div>
             </div>
         </div>
 
-        <div id="payment-section" class="mt-6 space-y-6 border-t pt-6" style="display: none;">
-            <div class="border-t pt-4">
-                <h3 class="font-medium mb-2">Select Payment Method</h3>
-                <div class="grid grid-cols-3 gap-2">
-                    <button
-                        class="payment-method w-full px-4 py-2 border border-gray-300 rounded-md"
-                        data-method="cash"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        Cash
-                    </button>
-                    <button
-                        class="payment-method w-full px-4 py-2 border border-gray-300 rounded-md"
-                        data-method="card"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                        </svg>
-                        Card
-                    </button>
-                    <button
-                        class="payment-method w-full px-4 py-2 border border-gray-300 rounded-md"
-                        data-method="wallet"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        E-Wallet
-                    </button>
-                </div>
-            </div>
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8" id="main-layout">
+                <div id="product-catalog" class="glass-panel p-6 animate-in rounded-xl shadow-lg border border-white border-opacity-30 bg-white bg-opacity-80">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-[#8B4513]">Products</h2>
+                        <div class="flex gap-2 items-center">
+                            <button
+                                id="meat-category-btn"
+                                class="rounded-full shadow-md transition-all hover:scale-105 bg-[#8B4513] text-white px-4 py-2"
+                            >
+                                Meat
+                            </button>
+                            <button
+                                id="vegetable-category-btn"
+                                class="rounded-full shadow-md transition-all hover:scale-105 border border-gray-300 px-4 py-2"
+                            >
+                                Vegetable
+                            </button>
+                            <button
+                                id="collapse-catalog-btn"
+                                class="rounded-full ml-2 border border-gray-300 p-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
+                            </button>
+                        </div>
+                    </div>
 
-            <!-- Card Payment Form -->
-            <div id="card-payment-form" class="payment-form rounded-lg bg-white p-4 shadow-inner border border-gray-100" style="display: none;">
-                <div class="bg-blue-50 p-4 rounded-lg mb-4">
-                    <p class="text-sm text-blue-800 font-medium mb-2">Accepted Cards:</p>
-                    <div class="text-sm text-blue-700">
-                        <ul class="list-disc list-inside space-y-1">
-                            <li>Bank Cards: BDO, Metrobank, BPI, PNB, Unionbank, AUB</li>
-                            <li>Credit Cards: Visa, Mastercard</li>
-                        </ul>
+                    <div class="mb-6">
+                        <div class="flex gap-2 relative">
+                            <input
+                                type="text"
+                                id="product-search"
+                                placeholder="Search products..."
+                                class="flex-1 pl-10 rounded-full bg-white border-2 border-[#8B4513] focus:outline-none focus:ring-[#8B4513] p-2"
+                            />
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search absolute left-3 top-3 text-[#8B4513]"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                            
+                            <button
+                                id="scan-barcode-btn"
+                                class="rounded-full bg-[#8B4513] text-white px-4 py-2 flex items-center gap-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-barcode"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg>
+                                Scan
+                            </button>
+                        </div>
                     </div>
-                </div>
-                
-                <div class="space-y-4">
-                    <div>
-                        <input
-                            type="text"
-                            id="card_number"
-                            placeholder="Card Number (e.g., 4235-1231-1241-4234)"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-md"
-                            required
-                        />
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <input
-                            type="text"
-                            id="expiry_date"
-                            placeholder="MM/YY"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-md"
-                            required
-                        />
-                        <input
-                            type="text"
-                            id="cvv"
-                            placeholder="CVV"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-md"
-                            required
-                        />
-                    </div>
-                </div>
-            </div>
 
-            <!-- E-Wallet Payment Form -->
-            <div id="ewallet-payment-form" class="payment-form rounded-lg bg-white p-4 shadow-inner border border-gray-100" style="display: none;">
-                <div class="space-y-4 animate-in">
-                    <div class="bg-white p-4 rounded-lg text-center">
-                        <img 
-                            src="{% static 'pos/images/qr-code.png' %}" 
-                            alt="InstaPay QR Code"
-                            class="mx-auto h-32 w-32 object-contain"
-                        />
-                        <p class="mt-2 text-sm text-gray-600">
-                            Scan and attach receipt below
-                        </p>
-                    </div>
-                    <div id="receipt-preview-container" style="display: none;" class="text-center">
-                        <p class="text-sm text-gray-600 mb-2">Uploaded Receipt:</p>
-                        <img id="receipt-preview" src="" alt="Receipt Preview" class="mx-auto h-32 object-contain border rounded-lg" />
-                    </div>
-                    <div class="flex flex-col gap-2">
-                        <button
-                            id="upload-receipt-btn"
-                            onclick="document.getElementById('receipt-upload').click()"
-                            class="w-full px-4 py-2 bg-[#8B4513] text-white rounded-md"
-                        >
-                            Attach Receipt
-                        </button>
-                        <input
-                            id="receipt-upload"
-                            type="file"
-                            accept="image/*"
-                            class="hidden"
-                        />
+                    <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <!-- Products will be loaded here dynamically -->
                     </div>
                 </div>
-            </div>
 
-            <!-- Customer Contact -->
-            <div class="space-y-2">
-                <label for="customer_contact" class="text-sm font-medium">Customer Contact (Optional)</label>
-                <input
-                    type="text"
-                    id="customer_contact"
-                    placeholder="Phone Number"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-md"
-                />
-            </div>
-            
-            <div class="border-t pt-6">
-                <div class="flex justify-between mb-4 items-center">
-                    <span class="font-bold text-lg">Total:</span>
-                    <span class="font-bold text-xl text-[#8B4513]" id="cart-total">₱0.00</span>
-                </div>
-                <form id="transaction-form">
-                    {% csrf_token %}
-                    <input type="hidden" id="payment_method" name="payment_method" value="" />
-                    <input type="hidden" id="total" name="total" value="0" />
-                    <button
-                        id="pay-now-btn"
-                        type="button"
-                        class="w-full h-12 text-lg rounded-full shadow-lg hover:shadow-xl transition-all bg-[#8B4513] text-white px-4 py-2"
-                        disabled
-                    >
-                        Pay Now
-                    </button>
-                </form>
-            </div>
-        </div>
+                <div id="cart-summary" class="glass-panel p-6 animate-in rounded-xl shadow-lg border border-white border-opacity-30 bg-white bg-opacity-80">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold text-[#8B4513]">Cart</h2>
+                        <div class="flex gap-2">
+                            <div class="flex gap-2 relative">
+                                <input 
+                                    type="text" 
+                                    id="manual-barcode"
+                                    placeholder="Enter barcode..."
+                                    class="w-40 pl-9 rounded-full bg-white border-2 border-[#8B4513] focus:outline-none p-2"
+                                />
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-barcode absolute left-3 top-2.5 text-[#8B4513]"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg>
+                                <button 
+                                    id="manual-scan-btn"
+                                    class="rounded-full h-9 bg-[#8B4513] text-white px-4 py-2"
+                                >
+                                    Scan
+                                </button>
+                            </div>
+                            <a
+                                href="{% url 'transactions_list' %}"
+                                class="flex items-center gap-2 rounded-full shadow-md hover:shadow-lg transition-all hover:border-[#8B4513] border border-gray-300 px-4 py-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                                Transactions
+                            </a>
+                        </div>
+                    </div>
 
-        <div id="success-section" class="mt-6 space-y-6 animate-in" style="display: none;">
-            <div class="p-6 rounded-lg shadow-inner border text-center">
-                <div id="payment-success-cash" class="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 text-yellow-700" style="display: none;">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <p class="font-medium text-lg">Pending Payment</p>
-                    <p class="text-base">Total Bill: <span id="cash-total"></span></p>
-                    <p class="text-base">Method: Cash</p>
-                    <p class="text-base">Transaction #<span id="receipt-transaction-id"></span></p>
+                    <div id="cart-items" class="max-h-[400px] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
+                        <div id="empty-cart-message" class="text-center py-12">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-bag mx-auto text-gray-300 mb-4"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                            <p class="text-gray-500 text-lg">Cart is empty. Add some products!</p>
+                        </div>
+                        <!-- Cart items will be loaded here dynamically -->
+                    </div>
+
+                    <div id="payment-section" class="mt-6 space-y-6 border-t pt-6 hidden">
+                        <div id="payment-methods">
+                            <h3 class="font-medium mb-3">Select Payment Method</h3>
+                            <div class="grid grid-cols-3 gap-3">
+                                <button data-payment="cash" class="payment-method-btn flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:border-[#8B4513] transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-banknote mb-2"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+                                    <span>Cash</span>
+                                </button>
+                                <button data-payment="card" class="payment-method-btn flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:border-[#8B4513] transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-credit-card mb-2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                                    <span>Card</span>
+                                </button>
+                                <button data-payment="wallet" class="payment-method-btn flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg hover:border-[#8B4513] transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-wallet mb-2"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+                                    <span>E-Wallet</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="card-payment-form" class="rounded-lg bg-white p-4 shadow-inner border border-gray-100 hidden">
+                            <form id="card-form" class="space-y-4">
+                                <div>
+                                    <label for="card-number" class="block text-sm font-medium text-gray-700 mb-1">Card Number</label>
+                                    <input type="text" id="card-number" class="w-full border-2 border-gray-200 rounded-lg p-2 focus:border-[#8B4513] focus:outline-none" placeholder="1234 5678 9012 3456" maxlength="19">
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="expiry-date" class="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
+                                        <input type="text" id="expiry-date" class="w-full border-2 border-gray-200 rounded-lg p-2 focus:border-[#8B4513] focus:outline-none" placeholder="MM/YY" maxlength="5">
+                                    </div>
+                                    <div>
+                                        <label for="cvv" class="block text-sm font-medium text-gray-700 mb-1">CVV</label>
+                                        <input type="text" id="cvv" class="w-full border-2 border-gray-200 rounded-lg p-2 focus:border-[#8B4513] focus:outline-none" placeholder="123" maxlength="3">
+                                    </div>
+                                </div>
+                                <button type="submit" class="w-full bg-[#8B4513] text-white py-2 rounded-lg">Process Payment</button>
+                            </form>
+                        </div>
+
+                        <div id="ewallet-payment-form" class="rounded-lg bg-white p-4 shadow-inner border border-gray-100 hidden">
+                            <div class="space-y-4">
+                                <p class="text-gray-700">Please upload a screenshot of the payment confirmation:</p>
+                                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload mx-auto text-gray-400 mb-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                                    <p class="text-sm text-gray-600 mb-2">Click to upload or drag and drop</p>
+                                    <p class="text-xs text-gray-500">PNG, JPG or JPEG (max. 5MB)</p>
+                                    <input type="file" id="receipt-upload" class="hidden" accept="image/*">
+                                </div>
+                                <div id="upload-preview" class="hidden">
+                                    <div class="relative">
+                                        <img id="receipt-preview" src="#" alt="Receipt preview" class="w-full h-auto rounded-lg">
+                                        <button id="remove-receipt" class="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button id="submit-ewallet" class="w-full bg-[#8B4513] text-white py-2 rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>
+                                    Confirm Payment
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="border-t pt-6">
+                            <div class="flex justify-between mb-4 items-center">
+                                <span class="font-bold text-lg">Total:</span>
+                                <span id="cart-total" class="font-bold text-xl text-[#8B4513]">
+                                    ₱0.00
+                                </span>
+                            </div>
+                            <button
+                                id="pay-now-btn"
+                                class="w-full h-12 text-lg rounded-full shadow-lg hover:shadow-xl transition-all bg-[#8B4513] text-white disabled:bg-gray-300 disabled:cursor-not-allowed"
+                                disabled
+                            >
+                                Pay Now
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="payment-complete" class="mt-6 space-y-6 animate-in hidden">
+                        <div id="payment-status" class="p-6 rounded-lg shadow-inner border text-center">
+                            <!-- Payment status will be shown here -->
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button
+                                id="print-receipt-btn"
+                                class="w-full h-12 shadow-md hover:shadow-lg transition-all rounded-full border border-gray-300 flex items-center justify-center gap-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-printer"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                                Print Receipt
+                            </button>
+                            <button
+                                id="new-transaction-btn"
+                                class="w-full h-12 shadow-md hover:shadow-lg transition-all rounded-full bg-[#8B4513] text-white"
+                            >
+                                New Transaction
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div id="payment-success-other" class="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-green-700" style="display: none;">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p class="font-medium text-lg">Payment Successful!</p>
-                    <p class="text-base">Total paid: <span id="paid-total"></span></p>
-                    <p class="text-base">Method: <span id="payment-method-display"></span></p>
-                    <p class="text-base">Transaction #<span id="receipt-transaction-id-2"></span></p>
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-                <a
-                    id="print-receipt-btn"
-                    href="#"
-                    target="_blank"
-                    class="w-full h-12 shadow-md hover:shadow-lg transition-all rounded-full border border-gray-300 flex items-center justify-center"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                    </svg>
-                    Print Receipt
-                </a>
-                <button
-                    id="new-transaction-btn"
-                    class="w-full h-12 shadow-md hover:shadow-lg transition-all rounded-full bg-[#8B4513] text-white"
-                >
-                    New Transaction
-                </button>
             </div>
         </div>
     </div>
+
+    <!-- Barcode Scanner Container -->
+    <div id="barcode-scanner-container" class="hidden"></div>
 </div>
 
-<div id="toast-container" class="fixed bottom-0 right-0 p-3"></div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Category selection
-        document.querySelectorAll('.category-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                // Toggle active state
-                document.querySelectorAll('.category-btn').forEach(b => {
-                    b.classList.remove('bg-[#8B4513]', 'text-white');
-                    b.classList.add('border', 'border-gray-300');
-                });
-                this.classList.add('bg-[#8B4513]', 'text-white');
-                this.classList.remove('border', 'border-gray-300');
-                
-                // Filter products
-                const category = this.dataset.category;
-                document.querySelectorAll('.product-item').forEach(product => {
-                    if (product.dataset.category === category) {
-                        product.style.display = 'block';
-                    } else {
-                        product.style.display = 'none';
-                    }
-                });
-            });
-        });
-        
-        // Add to cart functionality
-        document.querySelectorAll('.product-item').forEach(product => {
-            product.addEventListener('click', function() {
-                const productId = this.dataset.productId;
-                fetch(`/pos/api/products/${productId}/`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            addToCart(data.product);
-                        }
-                    });
-            });
-        });
-        
-        // Initialize payment buttons
-        document.querySelectorAll('.payment-method').forEach(method => {
-            method.addEventListener('click', function() {
-                document.querySelectorAll('.payment-method').forEach(m => {
-                    m.classList.remove('bg-[#8B4513]', 'text-white');
-                });
-                this.classList.add('bg-[#8B4513]', 'text-white');
-                
-                const methodId = this.dataset.method;
-                document.getElementById('payment_method').value = methodId;
-                
-                // Enable pay button
-                document.getElementById('pay-now-btn').disabled = false;
-                
-                // Show relevant payment forms
-                document.querySelectorAll('.payment-form').forEach(form => {
-                    form.style.display = 'none';
-                });
-                
-                if (methodId === 'card') {
-                    document.getElementById('card-payment-form').style.display = 'block';
-                } else if (methodId === 'wallet') {
-                    document.getElementById('ewallet-payment-form').style.display = 'block';
-                }
-            });
-        });
-        
-        // Pay now button
-        document.getElementById('pay-now-btn').addEventListener('click', function() {
-            const paymentMethod = document.getElementById('payment_method').value;
-            if (!paymentMethod) {
-                showToast('Please select a payment method', 'error');
-                return;
-            }
-            
-            // Validate additional fields based on payment method
-            if (paymentMethod === 'card') {
-                const cardNumber = document.getElementById('card_number').value;
-                const expiryDate = document.getElementById('expiry_date').value;
-                const cvv = document.getElementById('cvv').value;
-                
-                if (!cardNumber || !expiryDate || !cvv) {
-                    showToast('Please fill in all card details', 'error');
-                    return;
-                }
-            } else if (paymentMethod === 'wallet') {
-                const receiptUpload = document.getElementById('receipt-upload');
-                if (!receiptUpload.files || receiptUpload.files.length === 0) {
-                    showToast('Please upload a receipt', 'error');
-                    return;
-                }
-            }
-            
-            processPayment();
-        });
-        
-        // New transaction button
-        document.getElementById('new-transaction-btn').addEventListener('click', function() {
-            localStorage.removeItem('pos_cart');
-            document.getElementById('payment-section').style.display = 'none';
-            document.getElementById('success-section').style.display = 'none';
-            document.getElementById('cart-items').innerHTML = `
-                <div class="text-center py-12">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                    </svg>
-                    <p class="text-gray-500 text-lg">Cart is empty. Add some products!</p>
-                </div>
-            `;
-        });
-        
-        // Load cart from localStorage
-        const savedCart = localStorage.getItem('pos_cart');
-        if (savedCart) {
-            const cart = JSON.parse(savedCart);
-            if (cart.length > 0) {
-                updateCartDisplay();
-            }
-        }
-    });
-    
-    // Helper functions
-    function addToCart(product) {
-        let cart = JSON.parse(localStorage.getItem('pos_cart') || '[]');
-        
-        // Check if product already exists in cart
-        const existingProductIndex = cart.findIndex(item => item.id === product.id);
-        
-        if (existingProductIndex !== -1) {
-            // Update quantity if product already in cart
-            cart[existingProductIndex].quantity += 1;
-        } else {
-            // Add new product to cart
-            cart.push({
-                id: product.id,
-                name: product.name,
-                price: product.price,
-                barcode: product.barcode,
-                quantity: 1
-            });
-        }
-        
-        localStorage.setItem('pos_cart', JSON.stringify(cart));
-        updateCartDisplay();
-        showToast(`Added ${product.name} to cart`, 'success');
-    }
-    
-    function updateCartDisplay() {
-        const cartContainer = document.getElementById('cart-items');
-        const cart = JSON.parse(localStorage.getItem('pos_cart') || '[]');
-        
-        if (cart.length === 0) {
-            cartContainer.innerHTML = `
-                <div class="text-center py-12">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                    </svg>
-                    <p class="text-gray-500 text-lg">Cart is empty. Add some products!</p>
-                </div>
-            `;
-            
-            document.getElementById('payment-section').style.display = 'none';
-        } else {
-            let cartHTML = '';
-            let total = 0;
-            
-            cart.forEach(item => {
-                const subtotal = item.price * item.quantity;
-                total += subtotal;
-                
-                cartHTML += `
-                    <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-all p-4 border border-gray-100">
-                        <div class="flex justify-between">
-                            <div>
-                                <h3 class="font-medium">${item.name}</h3>
-                                <p class="text-gray-600">₱${parseFloat(item.price).toFixed(2)} × ${item.quantity}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-bold text-[#8B4513]">₱${(item.price * item.quantity).toFixed(2)}</p>
-                                <div class="flex items-center mt-2">
-                                    <button class="quantity-btn w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center" data-product-id="${item.id}" data-change="-1">-</button>
-                                    <span class="mx-2">${item.quantity}</span>
-                                    <button class="quantity-btn w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center" data-product-id="${item.id}" data-change="1">+</button>
-                                    <button class="remove-item ml-2 text-red-500 hover:text-red-700" data-product-id="${item.id}">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            cartContainer.innerHTML = cartHTML;
-            
-            // Update cart total
-            document.getElementById('cart-total').textContent = `₱${total.toFixed(2)}`;
-            document.getElementById('total').value = total.toFixed(2);
-            
-            // Show payment section
-            document.getElementById('payment-section').style.display = 'block';
-            
-            // Add event listeners for quantity buttons and remove buttons
-            document.querySelectorAll('.quantity-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const productId = parseInt(this.dataset.productId);
-                    const change = parseInt(this.dataset.change);
-                    updateCartItemQuantity(productId, change);
-                });
-            });
-            
-            document.querySelectorAll('.remove-item').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const productId = parseInt(this.dataset.productId);
-                    removeFromCart(productId);
-                });
-            });
-        }
-    }
-    
-    function updateCartItemQuantity(productId, change) {
-        let cart = JSON.parse(localStorage.getItem('pos_cart') || '[]');
-        
-        const productIndex = cart.findIndex(item => item.id === productId);
-        
-        if (productIndex !== -1) {
-            cart[productIndex].quantity += change;
-            
-            if (cart[productIndex].quantity <= 0) {
-                // Remove item if quantity is zero or less
-                cart.splice(productIndex, 1);
-            }
-            
-            localStorage.setItem('pos_cart', JSON.stringify(cart));
-            updateCartDisplay();
-        }
-    }
-    
-    function removeFromCart(productId) {
-        let cart = JSON.parse(localStorage.getItem('pos_cart') || '[]');
-        
-        const productIndex = cart.findIndex(item => item.id === productId);
-        
-        if (productIndex !== -1) {
-            const productName = cart[productIndex].name;
-            cart.splice(productIndex, 1);
-            
-            localStorage.setItem('pos_cart', JSON.stringify(cart));
-            updateCartDisplay();
-            showToast(`Removed ${productName} from cart`, 'info');
-        }
-    }
-    
-    function processPayment() {
-        const cart = JSON.parse(localStorage.getItem('pos_cart') || '[]');
-        if (cart.length === 0) {
-            showToast('Cart is empty', 'error');
-            return;
-        }
-        
-        const paymentMethod = document.getElementById('payment_method').value;
-        if (!paymentMethod) {
-            showToast('Please select a payment method', 'error');
-            return;
-        }
-        
-        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        
-        // Prepare transaction data
-        const transactionData = {
-            items: cart.map(item => ({
-                name: item.name,
-                quantity: item.quantity,
-                price: item.price,
-                barcode: item.barcode || ''
-            })),
-            total: total,
-            payment_method: paymentMethod,
-            customer_contact: document.getElementById('customer_contact')?.value || ''
-        };
-        
-        // Add card details if payment method is card
-        if (paymentMethod === 'card') {
-            const cardNumber = document.getElementById('card_number').value;
-            const expiryDate = document.getElementById('expiry_date').value;
-            
-            transactionData.card_details = {
-                card_number: cardNumber,
-                expiry_date: expiryDate
-            };
-        }
-        
-        // Send transaction data to server
-        fetch('/pos/api/transactions/create/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            },
-            body: JSON.stringify(transactionData)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // If e-wallet payment, handle receipt upload
-                if (paymentMethod === 'wallet') {
-                    const fileInput = document.getElementById('receipt-upload');
-                    if (fileInput.files.length > 0) {
-                        const formData = new FormData();
-                        formData.append('receipt', fileInput.files[0]);
-                        
-                        fetch(`/pos/api/transactions/${data.transaction_id}/upload-receipt/`, {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                            },
-                            body: formData
-                        })
-                        .then(response => response.json())
-                        .then(uploadData => {
-                            if (uploadData.success) {
-                                completeTransaction(data.transaction_id, total, paymentMethod);
-                            } else {
-                                showToast('Failed to upload receipt', 'error');
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            showToast('Failed to upload receipt', 'error');
-                        });
-                    } else {
-                        completeTransaction(data.transaction_id, total, paymentMethod);
-                    }
-                } else {
-                    completeTransaction(data.transaction_id, total, paymentMethod);
-                }
-            } else {
-                showToast('Failed to create transaction: ' + (data.message || 'Unknown error'), 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showToast('Failed to create transaction', 'error');
-        });
-    }
-    
-    function completeTransaction(transactionId, total, paymentMethod) {
-        // Hide payment section
-        document.getElementById('payment-section').style.display = 'none';
-        
-        // Show success section
-        document.getElementById('success-section').style.display = 'block';
-        
-        // Update success message based on payment method
-        if (paymentMethod === 'cash') {
-            document.getElementById('payment-success-cash').style.display = 'block';
-            document.getElementById('payment-success-other').style.display = 'none';
-            document.getElementById('cash-total').textContent = `₱${total.toFixed(2)}`;
-        } else {
-            document.getElementById('payment-success-cash').style.display = 'none';
-            document.getElementById('payment-success-other').style.display = 'block';
-            document.getElementById('paid-total').textContent = `₱${total.toFixed(2)}`;
-            document.getElementById('payment-method-display').textContent = paymentMethod === 'card' ? 'Card' : 'E-Wallet';
-        }
-        
-        // Update transaction ID in receipt
-        document.getElementById('receipt-transaction-id').textContent = transactionId.substring(0, 8);
-        document.getElementById('receipt-transaction-id-2').textContent = transactionId.substring(0, 8);
-        
-        // Update print receipt button
-        document.getElementById('print-receipt-btn').href = `/pos/print-receipt/${transactionId}/`;
-        
-        // Show success toast
-        showToast('Transaction completed successfully', 'success');
-        
-        // Clear cart
-        localStorage.removeItem('pos_cart');
-    }
-    
-    function showToast(message, type = 'info') {
-        const toastContainer = document.getElementById('toast-container');
-        
-        const toastId = 'toast-' + Date.now();
-        const toastHTML = `
-            <div id="${toastId}" class="mb-3 p-4 rounded-lg shadow-lg ${type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'} text-white" role="alert">
-                ${message}
-            </div>
-        `;
-        
-        toastContainer.innerHTML += toastHTML;
-        
-        // Auto-hide after 3 seconds
-        setTimeout(() => {
-            const toastElement = document.getElementById(toastId);
-            toastElement.style.opacity = '0';
-            toastElement.style.transition = 'opacity 0.5s';
-            
-            setTimeout(() => {
-                toastElement.remove();
-            }, 500);
-        }, 3000);
-    }
-</script>
+<!-- Quagga.js for barcode scanning from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.js"></script>
+<script src="{% static 'js/camera-scanner.js' %}"></script>
+<script src="{% static 'js/barcode-scanner.js' %}"></script>
+<script src="{% static 'js/main.js' %}"></script>
 {% endblock %}
