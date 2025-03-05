@@ -121,14 +121,14 @@ const Transactions = () => {
     <div className="min-h-screen bg-gradient-to-br from-white to-pink-50 p-4">
       <div className="max-w-7xl mx-auto glass-panel p-6 rounded-xl shadow-lg border border-white border-opacity-30 bg-white bg-opacity-80">
         <div className="mb-6 flex flex-col items-center justify-center">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center w-full justify-start mb-2">
             <Button 
               variant="outline" 
               onClick={() => navigate("/pos")}
               className="flex items-center gap-2 rounded-full shadow-md hover:shadow-lg transition-all hover:border-[#8B4513]"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to POS
+              Back
             </Button>
           </div>
           <h1 className="text-2xl font-bold text-[#8B4513] text-center">Transactions</h1>

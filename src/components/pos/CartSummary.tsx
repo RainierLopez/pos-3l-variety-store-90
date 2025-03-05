@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Printer, ShoppingBag, CreditCard, Wallet, Banknote, Barcode, Database, ChevronRight } from "lucide-react";
@@ -96,18 +95,6 @@ export const CartSummary = ({
               Scan
             </Button>
           </div>
-          <Button
-            onClick={onToggleProductCatalog}
-            variant="outline"
-            className="flex items-center gap-2 rounded-full shadow-md hover:shadow-lg transition-all hover:border-[#8B4513]"
-          >
-            {isProductCatalogCollapsed ? (
-              <>
-                <ChevronRight className="h-4 w-4" />
-                Show Products
-              </>
-            ) : null}
-          </Button>
           <Button
             onClick={() => window.location.href = "/transactions"}
             variant="outline"
