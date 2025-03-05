@@ -9,8 +9,18 @@ urlpatterns = [
     path('transactions/<uuid:transaction_id>/', views.transaction_detail, name='transaction_detail'),
     path('print-receipt/<uuid:transaction_id>/', views.print_receipt, name='print_receipt'),
     
+    # Inventory Management
+    path('inventory/', views.inventory_management, name='inventory_management'),
+    path('inventory/add/', views.add_product, name='add_product'),
+    path('inventory/edit/<int:product_id>/', views.edit_product, name='edit_product'),
+    path('inventory/delete/<int:product_id>/', views.delete_product, name='delete_product'),
+    
+    # Reports
+    path('reports/sales/', views.sales_report, name='sales_report'),
+    
     # API endpoints
     path('api/products/', views.get_products, name='get_products'),
+    path('api/products/<int:product_id>/', views.get_product, name='get_product'),
     path('api/products/barcode/<str:barcode>/', views.get_product_by_barcode, name='get_product_by_barcode'),
     path('api/transactions/create/', views.create_transaction, name='create_transaction'),
     path('api/transactions/<uuid:transaction_id>/upload-receipt/', views.upload_ewallet_receipt, name='upload_ewallet_receipt'),
