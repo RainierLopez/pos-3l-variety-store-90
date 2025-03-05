@@ -1,0 +1,74 @@
+
+{% extends 'pos/base.html' %}
+{% load static %}
+
+{% block title %}Login - Variety Store POS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .glass-panel {
+        background-color: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .animate-in {
+        animation: fadeIn 0.5s ease-out;
+    }
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+    <div class="glass-panel p-8 w-full max-w-md animate-in">
+        <div class="space-y-6">
+            <div class="text-center">
+                <h1 class="text-3xl font-bold tracking-tight text-[#8B4513]">Login</h1>
+            </div>
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                <div class="space-y-2">
+                    <label for="username" class="text-sm font-medium">
+                        Username
+                    </label>
+                    <input
+                        id="username"
+                        name="username"
+                        type="text"
+                        placeholder="Enter your username"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md"
+                        required
+                    />
+                </div>
+                <div class="space-y-2">
+                    <label for="password" class="text-sm font-medium">
+                        Password
+                    </label>
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        placeholder="Enter your password"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md"
+                        required
+                    />
+                </div>
+                <button type="submit" class="w-full px-4 py-2 rounded-md" style="background-color: #8B4513; color: white;">
+                    Login
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
