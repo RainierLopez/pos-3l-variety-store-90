@@ -5,6 +5,7 @@ from .models import Product, Transaction, TransactionItem, CardDetail, EWalletRe
 class TransactionItemInline(admin.TabularInline):
     model = TransactionItem
     extra = 0
+    readonly_fields = ('subtotal',)
 
 class CardDetailInline(admin.StackedInline):
     model = CardDetail
@@ -16,15 +17,16 @@ class EWalletReceiptInline(admin.StackedInline):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'price', 'category', 'barcode', 'stock')
+    list_display = ('name', 'category', 'price', 'stock', 'barcode')
     list_filter = ('category',)
     search_fields = ('name', 'barcode')
-    list_editable = ('price', 'stock')
+    ordering = ('category', 'name')
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
     list_display = ('id', 'cashier', 'timestamp', 'total', 'payment_method', 'status')
     list_filter = ('status', 'payment_method', 'timestamp')
-    search_fields = ('id', 'cashier__username', 'customer_contact')
+    search_fields = ('id', 'cashier__username')
     inlines = [TransactionItemInline, CardDetailInline, EWalletReceiptInline]
-    readonly_fields = ('id', 'timestamp')
+    readonly_fields = ('id',)
+    date_hierarchy = 'timestamp'

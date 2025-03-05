@@ -1,7 +1,6 @@
 
-<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="200" height="200" fill="#F3F4F6"/>
-  <path d="M100 70C88.954 70 80 78.954 80 90C80 101.046 88.954 110 100 110C111.046 110 120 101.046 120 90C120 78.954 111.046 70 100 70Z" fill="#D1D5DB"/>
-  <path d="M65 130C65 119.507 78.4315 110 95 110H105C121.569 110 135 119.507 135 130V140H65V130Z" fill="#D1D5DB"/>
-  <path d="M155 60H140V45C140 42.2386 137.761 40 135 40C132.239 40 130 42.2386 130 45V60H115C112.239 60 110 62.2386 110 65C110 67.7614 112.239 70 115 70H130V85C130 87.7614 132.239 90 135 90C137.761 90 140 87.7614 140 85V70H155C157.761 70 160 67.7614 160 65C160 62.2386 157.761 60 155 60Z" fill="#D1D5DB"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+  <polyline points="21 15 16 10 5 21"></polyline>
 </svg>

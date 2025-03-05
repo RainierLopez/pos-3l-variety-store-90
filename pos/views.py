@@ -264,24 +264,6 @@ def get_product(request, product_id):
     except Product.DoesNotExist:
         return JsonResponse({'error': 'Product not found'}, status=404)
 
-@login_required
-def get_product_by_barcode(request, barcode):
-    """API: Get product by barcode"""
-    try:
-        product = Product.objects.get(barcode=barcode)
-        product_data = {
-            'id': product.id,
-            'name': product.name,
-            'price': float(product.price),
-            'category': product.category,
-            'barcode': product.barcode,
-            'image': product.image,
-            'stock': product.stock
-        }
-        return JsonResponse(product_data)
-    except Product.DoesNotExist:
-        return JsonResponse({'error': 'Product not found'}, status=404)
-
 # Cart API endpoints
 @login_required
 def get_cart(request):
