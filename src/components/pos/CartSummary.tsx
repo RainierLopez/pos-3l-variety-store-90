@@ -1,12 +1,13 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Printer, ShoppingBag, CreditCard, Wallet, Banknote, Barcode, Database, ChevronRight, Camera } from "lucide-react";
+import { Printer, ShoppingBag, CreditCard, Wallet, Banknote, Barcode, Database, Camera } from "lucide-react";
 import { Product, Transaction } from "@/types/pos";
 import { CartItem } from "./CartItem";
 import { PaymentMethods } from "./PaymentMethods";
 import { CardPayment } from "./payments/CardPayment";
 import { EWalletPayment } from "./payments/EWalletPayment";
+import { BarcodeScanner } from "./BarcodeScanner";
 import { CardDetails } from "@/types/pos";
 import { useState } from "react";
 
@@ -34,7 +35,7 @@ interface CartSummaryProps {
   onBarcodeKeyPress: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   isProductCatalogCollapsed: boolean;
   onToggleProductCatalog: () => void;
-  onOpenScanner: () => void;
+  onBarcodeDetected: (barcode: string) => void;
 }
 
 export const CartSummary = ({
@@ -61,8 +62,10 @@ export const CartSummary = ({
   onBarcodeKeyPress,
   isProductCatalogCollapsed,
   onToggleProductCatalog,
-  onOpenScanner,
+  onBarcodeDetected,
 }: CartSummaryProps) => {
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  
   const getPaymentIcon = () => {
     switch (selectedPaymentMethod) {
       case 'cash':
@@ -98,12 +101,12 @@ export const CartSummary = ({
               Search
             </Button>
             <Button
-              onClick={onOpenScanner}
+              onClick={() => setShowBarcodeScanner(!showBarcodeScanner)}
               className="rounded-full h-9 flex items-center gap-1"
               style={{ backgroundColor: '#8B4513', color: 'white' }}
             >
               <Camera className="h-4 w-4" />
-              Scan
+              {showBarcodeScanner ? 'Hide Scanner' : 'Scan'}
             </Button>
           </div>
           <Button
@@ -116,6 +119,17 @@ export const CartSummary = ({
           </Button>
         </div>
       </div>
+
+      {/* Embedded Barcode Scanner */}
+      {showBarcodeScanner && (
+        <div className="mb-4 rounded-lg overflow-hidden shadow-lg">
+          <BarcodeScanner 
+            isOpen={showBarcodeScanner}
+            onClose={() => setShowBarcodeScanner(false)}
+            onBarcodeDetected={onBarcodeDetected}
+          />
+        </div>
+      )}
 
       <div className="max-h-[400px] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
         {cart.map((item) => (
@@ -135,6 +149,7 @@ export const CartSummary = ({
         )}
       </div>
 
+      {/* Payment section */}
       {cart.length > 0 && !paymentComplete && (
         <div className="mt-6 space-y-6 border-t pt-6">
           <PaymentMethods
