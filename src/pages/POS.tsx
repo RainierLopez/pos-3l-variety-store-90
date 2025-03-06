@@ -429,17 +429,39 @@ const POS = () => {
       <html>
       <head>
         <title>Barcode List</title>
+        <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
         <style>
-          body { font-family: Arial, sans-serif; }
-          table { width: 100%; border-collapse: collapse; }
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
           th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
           th { background-color: #f2f2f2; }
           .meat { background-color: #ffebee; }
           .vegetable { background-color: #e8f5e9; }
+          .barcode-container { display: flex; flex-direction: column; align-items: center; margin-top: 5px; }
+          @media print {
+            .no-print { display: none; }
+            .page-break { page-break-after: always; }
+            svg { max-width: 100%; height: auto; }
+          }
+          .print-button {
+            background-color: #8B4513;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            font-weight: bold;
+          }
+          h1 { color: #8B4513; }
         </style>
       </head>
       <body>
-        <h1>Product Barcode List</h1>
+        <div class="no-print" style="text-align: center; margin-bottom: 20px;">
+          <h1>Product Barcode List</h1>
+          <button class="print-button" onclick="window.print()">Print Barcode List</button>
+        </div>
+        
         <table>
           <tr>
             <th>Barcode</th>
@@ -450,7 +472,12 @@ const POS = () => {
           </tr>
           ${products.map(product => `
             <tr class="${product.category}">
-              <td>${product.barcode}</td>
+              <td>
+                ${product.barcode}
+                <div class="barcode-container">
+                  <svg id="barcode-${product.id}" class="barcode"></svg>
+                </div>
+              </td>
               <td>${product.name}</td>
               <td>₱${product.price.toFixed(2)}</td>
               <td>${product.stock}</td>
@@ -458,6 +485,21 @@ const POS = () => {
             </tr>
           `).join('')}
         </table>
+        
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+            ${products.map(product => `
+              JsBarcode("#barcode-${product.id}", "${product.barcode}", {
+                format: "EAN13",
+                width: 1.5,
+                height: 40,
+                displayValue: true,
+                fontSize: 12,
+                margin: 10
+              });
+            `).join('')}
+          });
+        </script>
       </body>
       </html>
     `;
@@ -466,9 +508,6 @@ const POS = () => {
     if (printWindow) {
       printWindow.document.write(content);
       printWindow.document.close();
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
     }
   };
 
