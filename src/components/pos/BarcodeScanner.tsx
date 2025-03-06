@@ -27,6 +27,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     if (code === lastScannedCode) return;
     
     setLastScannedCode(code);
+    console.log("Processing barcode:", code);
     onBarcodeDetected(code);
     
     const audio = new Audio('/static/sounds/beep.mp3');
@@ -94,7 +95,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               },
               decoder: {
                 readers: [
-                  "code_128_reader", // Prioritize Code-128 by putting it first
+                  "code_128_reader", // Prioritize Code-128 (for numeric barcodes like in image)
                   "ean_reader",
                   "ean_8_reader",
                   "code_39_reader", 
@@ -119,22 +120,32 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               console.log("Scanner initialization successful!");
               Quagga.start();
               setInitialized(true);
+              
+              // Log the current settings for debugging
+              console.log("Scanner initialized with settings:", {
+                readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader", "code_93_reader", "upc_reader", "upc_e_reader", "codabar_reader", "i2of5_reader"],
+                locate: true,
+                frequency: 10,
+                numOfWorkers: 4
+              });
             });
 
             Quagga.onDetected((result) => {
               if (result && result.codeResult && result.codeResult.code) {
                 console.log("Detected barcode:", result.codeResult.code, "Format:", result.codeResult.format);
                 
-                // For Code-128, we'll use a slightly lower confidence threshold since it's more reliable
-                let confidenceThreshold = result.codeResult.format === 'code_128' ? 0.50 : 0.65;
+                // For Code-128, we'll use a slightly lower confidence threshold
+                let confidenceThreshold = result.codeResult.format === 'code_128' ? 0.45 : 0.65;
                 let highConfidence = false;
                 
                 if (result.codeResult.decodedCodes) {
                   for (let i = 0; i < result.codeResult.decodedCodes.length; i++) {
                     const code = result.codeResult.decodedCodes[i];
-                    if (code && typeof (code as any).confidence === 'number' && (code as any).confidence > confidenceThreshold) {
-                      highConfidence = true;
-                      break;
+                    if (code && typeof (code as any).confidence === 'number') {
+                      console.log(`Code segment ${i} confidence:`, (code as any).confidence);
+                      if ((code as any).confidence > confidenceThreshold) {
+                        highConfidence = true;
+                      }
                     }
                   }
                 }
@@ -250,7 +261,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                 console.log("Detected barcode on retry:", result.codeResult.code, "Format:", result.codeResult.format);
                 
                 // For Code-128, we'll use a slightly lower confidence threshold
-                let confidenceThreshold = result.codeResult.format === 'code_128' ? 0.50 : 0.65;
+                let confidenceThreshold = result.codeResult.format === 'code_128' ? 0.45 : 0.65;
                 let hasConfidence = false;
                 
                 if (result.codeResult.decodedCodes) {
@@ -258,6 +269,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                     const code = result.codeResult.decodedCodes[i];
                     if (code && typeof (code as any).confidence === 'number' && (code as any).confidence > confidenceThreshold) {
                       hasConfidence = true;
+                      console.log(`Code segment ${i} confidence on retry:`, (code as any).confidence);
                       break;
                     }
                   }
@@ -344,8 +356,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         </div>
       )}
       
-      <style>
-        {`
+      <style jsx>{`
         .scan-line-animation {
           animation: scan 2s linear infinite;
         }
@@ -355,8 +366,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           50% { top: 80%; }
           100% { top: 20%; }
         }
-        `}
-      </style>
+      `}</style>
     </div>
   );
 };

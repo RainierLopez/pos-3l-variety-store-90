@@ -1,4 +1,3 @@
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
@@ -749,3 +748,54 @@ def update_transaction_status(request, transaction_id):
         return JsonResponse({'error': 'Transaction not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+@login_required
+def camera_scanner(request):
+    """Camera scanner interface"""
+    # Create a test product with the specific barcode if it doesn't exist yet
+    test_barcode = "8801234567891"
+    if not Product.objects.filter(barcode=test_barcode).exists():
+        try:
+            Product.objects.create(
+                name="Test Code-128 Product",
+                price=99.99,
+                category="meat",
+                barcode=test_barcode,
+                stock=100,
+                image="https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&q=80&w=500"
+            )
+        except:
+            # Product might already exist
+            pass
+            
+    return render(request, 'pos/camera_scanner.html')
+
+@csrf_exempt
+def process_camera_scan(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            barcode = data.get('barcode')
+
+            if not barcode:
+                return JsonResponse({'error': 'No barcode provided'}, status=400)
+
+            try:
+                product = Product.objects.get(barcode=barcode)
+                product_data = {
+                    'id': product.id,
+                    'name': product.name,
+                    'price': float(product.price),
+                    'category': product.category,
+                    'barcode': product.barcode,
+                    'image': product.image or '/static/images/placeholder.svg',
+                    'stock': product.stock
+                }
+                return JsonResponse(product_data)
+            except Product.DoesNotExist:
+                return JsonResponse({'error': 'Product not found'}, status=404)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    return JsonResponse({'error': 'Invalid method'}, status=405)

@@ -59,7 +59,13 @@ function startScanner(deviceId) {
         numOfWorkers: navigator.hardwareConcurrency || 2,
         frequency: 10,
         decoder: {
-            readers: ["ean_reader", "ean_8_reader", "code_128_reader", "code_39_reader", "upc_reader"]
+            readers: [
+                "code_128_reader", // Prioritize Code-128 for numeric barcodes
+                "ean_reader", 
+                "ean_8_reader", 
+                "code_39_reader", 
+                "upc_reader"
+            ]
         },
         locate: true
     }, function(err) {
@@ -82,9 +88,31 @@ function startScanner(deviceId) {
 // Handle successful barcode detection
 function onBarcodeDetected(result) {
     const code = result.codeResult.code;
+    console.log("Barcode detected:", code, "Format:", result.codeResult.format);
     
     // Prevent duplicate scans (same code scanned multiple times)
     if (lastResult === code) {
+        return;
+    }
+    
+    // For Code-128, apply a lower confidence threshold
+    let confidenceThreshold = result.codeResult.format === 'code_128' ? 0.45 : 0.65;
+    let hasConfidence = false;
+    
+    // Check confidence of the scan
+    if (result.codeResult.decodedCodes) {
+        for (let i = 0; i < result.codeResult.decodedCodes.length; i++) {
+            const codeSegment = result.codeResult.decodedCodes[i];
+            if (codeSegment && codeSegment.confidence && codeSegment.confidence > confidenceThreshold) {
+                hasConfidence = true;
+                console.log("Segment confidence:", codeSegment.confidence, "is above threshold:", confidenceThreshold);
+                break;
+            }
+        }
+    }
+    
+    if (!hasConfidence) {
+        console.log("Barcode detected but confidence too low");
         return;
     }
     

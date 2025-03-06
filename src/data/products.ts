@@ -2,7 +2,7 @@
 import { Product } from "@/types/pos";
 
 export const products: Product[] = [
-  { id: 1, name: "Liempo (Per kg)", price: 230, quantity: 0, category: "meat", barcode: "MEAT00001", image: "https://images.unsplash.com/photo-1611062845041-653eec6db960?auto=format&fit=crop&q=80&w=500", stock: 100 },
+  { id: 1, name: "Liempo (Per kg)", price: 230, quantity: 0, category: "meat", barcode: "8801234567891", image: "https://images.unsplash.com/photo-1611062845041-653eec6db960?auto=format&fit=crop&q=80&w=500", stock: 100 },
   { id: 2, name: "Lechon Roll (Per kg)", price: 200, quantity: 0, category: "meat", barcode: "MEAT00002", image: "https://images.unsplash.com/photo-1624174503860-478619028ab3?auto=format&fit=crop&q=80&w=500", stock: 100 },
   { id: 3, name: "Bacon (Per kg)", price: 215, quantity: 0, category: "meat", barcode: "MEAT00003", image: "https://images.unsplash.com/photo-1609164994413-3427318b9f35?auto=format&fit=crop&q=80&w=500", stock: 100 },
   { id: 4, name: "Chicken Drumsticks (Per kg)", price: 180, quantity: 0, category: "meat", barcode: "MEAT00004", image: "https://images.unsplash.com/photo-1610057099443-fde8c4d50f91?auto=format&fit=crop&q=80&w=500", stock: 100 },
