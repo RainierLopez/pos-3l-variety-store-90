@@ -1,6 +1,7 @@
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Printer, ShoppingBag, CreditCard, Wallet, Banknote, Barcode, Database, ChevronRight } from "lucide-react";
+import { Printer, ShoppingBag, CreditCard, Wallet, Banknote, Barcode, Database, ChevronRight, Camera } from "lucide-react";
 import { Product, Transaction } from "@/types/pos";
 import { CartItem } from "./CartItem";
 import { PaymentMethods } from "./PaymentMethods";
@@ -33,6 +34,7 @@ interface CartSummaryProps {
   onBarcodeKeyPress: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   isProductCatalogCollapsed: boolean;
   onToggleProductCatalog: () => void;
+  onOpenScanner: () => void;
 }
 
 export const CartSummary = ({
@@ -59,6 +61,7 @@ export const CartSummary = ({
   onBarcodeKeyPress,
   isProductCatalogCollapsed,
   onToggleProductCatalog,
+  onOpenScanner,
 }: CartSummaryProps) => {
   const getPaymentIcon = () => {
     switch (selectedPaymentMethod) {
@@ -92,6 +95,14 @@ export const CartSummary = ({
               className="rounded-full h-9"
               style={{ backgroundColor: '#8B4513', color: 'white' }}
             >
+              Search
+            </Button>
+            <Button
+              onClick={onOpenScanner}
+              className="rounded-full h-9 flex items-center gap-1"
+              style={{ backgroundColor: '#8B4513', color: 'white' }}
+            >
+              <Camera className="h-4 w-4" />
               Scan
             </Button>
           </div>

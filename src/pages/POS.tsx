@@ -2,11 +2,12 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Database, List, LogOut } from "lucide-react";
+import { Database, List, LogOut, Camera } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ProductCatalog } from "@/components/pos/ProductCatalog";
 import { CartSummary } from "@/components/pos/CartSummary";
 import { PhoneNumberDialog } from "@/components/pos/PhoneNumberDialog";
+import { BarcodeScanner } from "@/components/pos/BarcodeScanner";
 import { Product, CardDetails, Transaction } from "@/types/pos";
 import { products as initialProducts } from "@/data/products";
 
@@ -34,10 +35,27 @@ const POS = () => {
   const [showPhoneDialog, setShowPhoneDialog] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [currentTransactionForReceipt, setCurrentTransactionForReceipt] = useState<Transaction | null>(null);
+  
+  // Camera barcode scanner state
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [hasOpenedScanner, setHasOpenedScanner] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("products", JSON.stringify(products));
   }, [products]);
+
+  // Automatically open scanner when component mounts
+  useEffect(() => {
+    if (!hasOpenedScanner) {
+      // Slight delay to ensure page is loaded
+      const timer = setTimeout(() => {
+        setShowBarcodeScanner(true);
+        setHasOpenedScanner(true);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [hasOpenedScanner]);
 
   const handleBarcodeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setBarcodeInput(e.target.value);
@@ -64,6 +82,24 @@ const POS = () => {
       toast({
         title: "Product Not Found",
         description: "No product matches this barcode.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBarcodeDetected = (barcode: string) => {
+    setBarcodeInput(barcode);
+    const product = products.find(p => p.barcode === barcode);
+    if (product) {
+      addToCart(product);
+      toast({
+        title: "Product Found",
+        description: `${product.name} has been added to your cart.`,
+      });
+    } else {
+      toast({
+        title: "Product Not Found",
+        description: `No product matches barcode: ${barcode}`,
         variant: "destructive",
       });
     }
@@ -481,6 +517,10 @@ const POS = () => {
     setIsProductCatalogCollapsed(!isProductCatalogCollapsed);
   };
 
+  const toggleBarcodeScanner = () => {
+    setShowBarcodeScanner(!showBarcodeScanner);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-white to-pink-50">
       <div className="bg-[#8B4513] text-white py-4 px-6 shadow-lg mb-6">
@@ -494,6 +534,14 @@ const POS = () => {
             >
               <List className="h-5 w-5" />
               Generate Barcode List
+            </Button>
+            <Button
+              onClick={toggleBarcodeScanner}
+              variant="ghost"
+              className="text-white hover:text-white/80 hover:bg-white/10 flex items-center gap-2"
+            >
+              <Camera className="h-5 w-5" />
+              Scan Barcode
             </Button>
             <Button
               onClick={handleLogout}
@@ -513,6 +561,12 @@ const POS = () => {
           phoneNumber={phoneNumber}
           onPhoneNumberChange={setPhoneNumber}
           onSendReceipt={handleSendReceipt}
+        />
+
+        <BarcodeScanner
+          isOpen={showBarcodeScanner}
+          onClose={() => setShowBarcodeScanner(false)}
+          onBarcodeDetected={handleBarcodeDetected}
         />
 
         <div className="max-w-7xl mx-auto">
@@ -555,6 +609,7 @@ const POS = () => {
                 onBarcodeKeyPress={handleKeyPress}
                 isProductCatalogCollapsed={isProductCatalogCollapsed}
                 onToggleProductCatalog={toggleProductCatalog}
+                onOpenScanner={toggleBarcodeScanner}
               />
             </div>
           </div>
@@ -571,6 +626,13 @@ const POS = () => {
           onToggleCollapse={toggleProductCatalog}
         />
       )}
+
+      <button 
+        onClick={toggleBarcodeScanner}
+        className="fixed bottom-6 right-6 w-16 h-16 rounded-full bg-[#8B4513] text-white flex items-center justify-center shadow-lg hover:bg-[#6d3410] transition-all z-50"
+      >
+        <Camera className="h-8 w-8" />
+      </button>
     </div>
   );
 };
