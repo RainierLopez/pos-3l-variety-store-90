@@ -50,6 +50,11 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     const initializeScanner = async () => {
       try {
         if (!scannerRef.current) return;
+        
+        // Clear any previous errors
+        setError(null);
+        
+        console.log("Attempting to initialize scanner...");
 
         // Initialize Quagga with improved settings for better barcode detection
         await Quagga.init({
@@ -58,17 +63,17 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             type: "LiveStream",
             target: scannerRef.current,
             constraints: {
-              width: { min: 800 },
-              height: { min: 600 },
+              width: { min: 640 },
+              height: { min: 480 },
               facingMode: "environment",
-              aspectRatio: { exact: 1 } // Force exact 1:1 aspect ratio to keep camera centered
+              aspectRatio: { min: 1, max: 1 } // Force exact 1:1 aspect ratio to keep camera centered
             },
           },
           locator: {
             patchSize: "medium",
             halfSample: true
           },
-          numOfWorkers: navigator.hardwareConcurrency || 4,
+          numOfWorkers: navigator.hardwareConcurrency ? Math.max(2, Math.min(navigator.hardwareConcurrency - 1, 4)) : 2,
           frequency: 10,
           decoder: {
             readers: [
@@ -82,15 +87,20 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               "codabar_reader",
               "i2of5_reader"
             ],
-            // Increase multiple passes to improve accuracy
             multiple: false
           },
           locate: true
+        }, function(err) {
+          if (err) {
+            console.error("Error initializing scanner:", err);
+            setError("Could not access camera. Please check permissions and try again.");
+            return;
+          }
+          
+          console.log("Scanner initialization successful!");
+          Quagga.start();
+          setInitialized(true);
         });
-
-        Quagga.start();
-        setInitialized(true);
-        setError(null);
 
         // Improve detection by processing results with confidence score
         Quagga.onDetected((result) => {
@@ -118,13 +128,20 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       }
     };
 
-    if (isOpen && !initialized) {
-      initializeScanner();
+    if (isOpen) {
+      // Small delay before initializing to ensure DOM is ready
+      setTimeout(() => {
+        initializeScanner();
+      }, 300);
     }
 
     return () => {
       if (quaggaInstance) {
-        quaggaInstance.stop();
+        try {
+          quaggaInstance.stop();
+        } catch (e) {
+          console.error("Error stopping Quagga:", e);
+        }
         setInitialized(false);
       }
       if (debounceTimerRef.current) {
@@ -132,6 +149,76 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       }
     };
   }, [isOpen, onBarcodeDetected]);
+
+  // Function to retry camera access
+  const retryScanner = () => {
+    setInitialized(false);
+    setError(null);
+    
+    // Small delay before reinitializing
+    setTimeout(() => {
+      if (!scannerRef.current) return;
+      
+      console.log("Retrying scanner initialization...");
+      
+      // Request permission explicitly before initializing
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then(() => {
+            // Permission granted, initialize Quagga
+            Quagga.init({
+              inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: scannerRef.current,
+                constraints: {
+                  width: { min: 640 },
+                  height: { min: 480 },
+                  facingMode: "environment",
+                  aspectRatio: { min: 1, max: 1 }
+                },
+              },
+              locator: {
+                patchSize: "medium",
+                halfSample: true
+              },
+              numOfWorkers: navigator.hardwareConcurrency ? Math.max(2, Math.min(navigator.hardwareConcurrency - 1, 4)) : 2,
+              frequency: 10,
+              decoder: {
+                readers: [
+                  "ean_reader",
+                  "ean_8_reader",
+                  "code_128_reader", 
+                  "code_39_reader", 
+                  "code_93_reader",
+                  "upc_reader",
+                  "upc_e_reader",
+                  "codabar_reader",
+                  "i2of5_reader"
+                ],
+                multiple: false
+              },
+              locate: true
+            }, function(err: any) {
+              if (err) {
+                console.error("Error reinitializing scanner:", err);
+                setError("Could not access camera. Please check permissions and try again.");
+                return;
+              }
+              Quagga.start();
+              setInitialized(true);
+              setError(null);
+            });
+          })
+          .catch(err => {
+            console.error("Camera permission denied:", err);
+            setError("Camera permission denied. Please enable camera access in your browser settings.");
+          });
+      } else {
+        setError("Your browser doesn't support camera access. Please try a different browser.");
+      }
+    }, 300);
+  };
 
   if (!isOpen) return null;
 
@@ -164,56 +251,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           <div className="text-red-500 p-4 text-center">
             <p className="text-sm">{error}</p>
             <Button 
-              onClick={() => {
-                setInitialized(false);
-                setTimeout(() => {
-                  if (scannerRef.current) {
-                    Quagga.init({
-                      inputStream: {
-                        name: "Live",
-                        type: "LiveStream",
-                        target: scannerRef.current,
-                        constraints: {
-                          width: { min: 800 },
-                          height: { min: 600 },
-                          facingMode: "environment",
-                          aspectRatio: { exact: 1 }
-                        },
-                      },
-                      locator: {
-                        patchSize: "medium",
-                        halfSample: true
-                      },
-                      numOfWorkers: navigator.hardwareConcurrency || 4,
-                      frequency: 10,
-                      decoder: {
-                        readers: [
-                          "ean_reader",
-                          "ean_8_reader",
-                          "code_128_reader", 
-                          "code_39_reader", 
-                          "code_93_reader",
-                          "upc_reader",
-                          "upc_e_reader",
-                          "codabar_reader",
-                          "i2of5_reader"
-                        ],
-                        multiple: false
-                      },
-                      locate: true
-                    }, function(err: any) {
-                      if (err) {
-                        console.error("Error reinitializing scanner:", err);
-                        setError("Could not access camera. Please check permissions and try again.");
-                        return;
-                      }
-                      Quagga.start();
-                      setInitialized(true);
-                      setError(null);
-                    });
-                  }
-                }, 300);
-              }} 
+              onClick={retryScanner} 
               variant="destructive"
               size="sm"
               className="mt-2"
