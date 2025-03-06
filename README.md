@@ -1,69 +1,134 @@
-# Welcome to your Lovable project
 
-## Project info
+# Variety Store POS System
 
-**URL**: https://lovable.dev/projects/37a6aa97-ba72-40cb-a34a-bf5c6a8795c1
+A comprehensive Point of Sale (POS) system designed for small retail stores, featuring inventory management, sales processing, and reporting.
 
-## How can I edit this code?
+## Core Components
 
-There are several ways of editing your application.
+1. **User Management**
+   - User Roles: Admin (full access) and Cashier (limited to POS operations)
+   - Authentication: Login/logout functionality with session-based authentication
+   - User Profile: Each user has an associated profile with additional details
 
-**Use Lovable**
+2. **Inventory Management**
+   - Product Catalog: Products organized by categories (meat, vegetable)
+   - Product Details: Name, price, category, barcode, stock quantity, image
+   - Stock Tracking: Automatic reduction of stock when items are sold
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/37a6aa97-ba72-40cb-a34a-bf5c6a8795c1) and start prompting.
+3. **Point of Sale (POS)**
+   - Shopping Cart: Add/remove items, update quantities
+   - Barcode Scanning: Support for physical barcode scanners and camera-based scanning
+   - Payment Methods: Cash, Card payments, E-Wallet payments
+   - Receipt Generation: Digital receipts that can be printed or sent to customers
 
-Changes made via Lovable will be committed automatically to this repo.
+4. **Transaction Management**
+   - Transaction Records: Complete history of all sales
+   - Receipt Printing: Generate and print customer receipts
+   - Transaction Status: Pending, Completed, Cancelled
+   - Customer Data: Optional capture of customer contact information
 
-**Use your preferred IDE**
+5. **Reporting**
+   - Sales Reports: View sales data by period, category, or product
+   - Stock Alerts: Notifications for low stock items
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Setup Instructions
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Prerequisites
+- Python 3.8 or higher
+- Node.js 14 or higher
+- npm or yarn
 
-Follow these steps:
+### Backend Setup
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. **Create and activate a virtual environment**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows, use: venv\Scripts\activate
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. **Install Python dependencies**
+   ```bash
+   pip install django django-extensions djangorestframework pillow
+   ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+3. **Initialize the database**
+   ```bash
+   python manage.py migrate
+   ```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+4. **Create a superuser (for admin access)**
+   ```bash
+   python manage.py createsuperuser
+   ```
 
-**Edit a file directly in GitHub**
+5. **Initialize the system with sample data**
+   ```bash
+   python manage.py initialize_system
+   ```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+6. **Run the Django development server**
+   ```bash
+   python manage.py runserver
+   ```
 
-**Use GitHub Codespaces**
+### Frontend Setup
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. **Install JavaScript dependencies**
+   ```bash
+   npm install
+   # OR
+   yarn
+   ```
 
-## What technologies are used for this project?
+2. **Run the Vite development server**
+   ```bash
+   npm run dev
+   # OR
+   yarn dev
+   ```
 
-This project is built with .
+3. **Access the application**
+   - Open your browser and navigate to `http://localhost:5173`
+   - Log in with one of the sample accounts:
+     - Admin: username `admin`, password `password`
+     - Cashier: username `cashier`, password `password`
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Usage
 
-## How can I deploy this project?
+### POS Operations
 
-Simply open [Lovable](https://lovable.dev/projects/37a6aa97-ba72-40cb-a34a-bf5c6a8795c1) and click on Share -> Publish.
+1. **Adding Products to Cart**
+   - Browse products by category
+   - Search by name or scan barcode
+   - Click product to add to cart
 
-## I want to use a custom domain - is that possible?
+2. **Processing Payment**
+   - Select payment method (Cash, Card, E-Wallet)
+   - For Card payments, enter card details
+   - For E-Wallet payments, upload a receipt image
+   - Confirm payment to create transaction
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+3. **Generating Receipt**
+   - Click "Print Receipt" button to print or preview receipt
+   - Optionally enter customer's phone number to send receipt
+
+### Admin Functions
+
+1. **Inventory Management**
+   - Add, edit, and delete products
+   - Update stock levels
+   - Generate barcode list for printing
+
+2. **User Management**
+   - Add new cashiers or admin users
+   - Edit user roles and information
+
+3. **Transaction Management**
+   - View all transactions
+   - Filter by date, status, or payment method
+   - Change transaction status (e.g., mark as completed)
+
+4. **Reports**
+   - View sales reports for different time periods
+   - Analyze top-selling products
+   - Monitor stock levels
