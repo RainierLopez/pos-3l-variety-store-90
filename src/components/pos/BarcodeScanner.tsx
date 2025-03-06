@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Camera, CameraOff, RefreshCw, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -23,25 +22,22 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
   const debounceTimerRef = useRef<number | null>(null);
 
-  // Prevent multiple scans of the same barcode
   const processBarcode = (code: string) => {
     if (code === lastScannedCode) return;
     
     setLastScannedCode(code);
     onBarcodeDetected(code);
     
-    // Play a beep sound
     const audio = new Audio('/static/sounds/beep.mp3');
     audio.play().catch(err => console.error("Error playing beep:", err));
     
-    // Reset the last scanned code after a delay
     if (debounceTimerRef.current) {
       window.clearTimeout(debounceTimerRef.current);
     }
     
     debounceTimerRef.current = window.setTimeout(() => {
       setLastScannedCode(null);
-    }, 3000); // Wait 3 seconds before scanning the same code again
+    }, 3000);
   };
 
   const stopScanner = () => {
@@ -54,7 +50,6 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   };
 
   useEffect(() => {
-    // Clean up on unmount
     return () => {
       if (initialized) {
         stopScanner();
@@ -72,18 +67,15 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       try {
         if (!scannerRef.current) return;
         
-        // Clear any previous errors
         setError(null);
         setInitialized(false);
         
         console.log("Attempting to initialize scanner...");
 
-        // Check if camera permission is granted
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
           try {
             await navigator.mediaDevices.getUserMedia({ video: true });
             
-            // Initialize Quagga with improved settings for better barcode detection
             Quagga.init({
               inputStream: {
                 name: "Live",
@@ -128,13 +120,10 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               setInitialized(true);
             });
 
-            // Improve detection by processing results with confidence score
             Quagga.onDetected((result) => {
               if (result && result.codeResult && result.codeResult.code) {
-                // Process any detected barcode - we'll filter by confidence later
                 console.log("Detected barcode:", result.codeResult.code);
                 
-                // Check confidence level of the result using type-safety
                 let highConfidence = false;
                 if (result.codeResult.decodedCodes) {
                   for (let i = 0; i < result.codeResult.decodedCodes.length; i++) {
@@ -170,7 +159,6 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     };
 
     if (isOpen) {
-      // Small delay before initializing to ensure DOM is ready
       setTimeout(() => {
         initializeScanner();
       }, 500);
@@ -193,22 +181,18 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     };
   }, [isOpen]);
 
-  // Function to retry camera access
   const retryScanner = () => {
     stopScanner();
     setError(null);
     
-    // Small delay before reinitializing
     setTimeout(() => {
       if (!scannerRef.current) return;
       
       console.log("Retrying scanner initialization...");
       
-      // Request permission explicitly before initializing
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         navigator.mediaDevices.getUserMedia({ video: true })
           .then(() => {
-            // Permission granted, initialize Quagga with more reliable settings
             Quagga.init({
               inputStream: {
                 name: "Live",
@@ -259,10 +243,8 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             
             Quagga.onDetected((result) => {
               if (result && result.codeResult && result.codeResult.code) {
-                // Process any detected barcode - we'll filter by confidence later
                 console.log("Detected barcode on retry:", result.codeResult.code);
                 
-                // For retry, we'll be a bit more lenient with confidence
                 let hasConfidence = false;
                 if (result.codeResult.decodedCodes) {
                   for (let i = 0; i < result.codeResult.decodedCodes.length; i++) {
@@ -338,27 +320,25 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           </div>
         )}
         
-        {/* Scanner hints */}
         {initialized && (
           <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-1 text-center">
             Position barcode in view to scan
           </div>
         )}
         
-        {/* Horizontal red scan line with animation */}
         {initialized && (
           <div className="absolute left-0 right-0 h-0.5 bg-red-500 shadow-[0_0_5px_red] z-20 scan-line-animation"></div>
         )}
       </div>
       
-      {/* Last detected barcode */}
       {lastScannedCode && (
         <div className="bg-green-600 p-2 text-center font-bold text-white text-sm">
           Scanned: {lastScannedCode}
         </div>
       )}
       
-      <style jsx>{`
+      <style>
+        {`
         .scan-line-animation {
           animation: scan 2s linear infinite;
         }
@@ -368,7 +348,8 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           50% { top: 80%; }
           100% { top: 20%; }
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 };
