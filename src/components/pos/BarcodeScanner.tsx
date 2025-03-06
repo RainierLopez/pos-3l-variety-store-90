@@ -58,8 +58,8 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             type: "LiveStream",
             target: scannerRef.current,
             constraints: {
-              width: { min: 640 },
-              height: { min: 480 },
+              width: { min: 800 },
+              height: { min: 600 },
               facingMode: "environment",
               aspectRatio: { min: 1, max: 2 }
             },
@@ -78,7 +78,9 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               "code_39_reader", 
               "code_93_reader",
               "upc_reader",
-              "upc_e_reader"
+              "upc_e_reader",
+              "codabar_reader",
+              "i2of5_reader"
             ]
           },
           locate: true
@@ -135,8 +137,8 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       
       <div 
         ref={scannerRef} 
-        className="w-full h-[300px] bg-black flex items-center justify-center relative overflow-hidden"
-        style={{ aspectRatio: '4/3' }}
+        className="w-full h-[400px] bg-black flex items-center justify-center relative overflow-hidden"
+        style={{ aspectRatio: '1/1' }}
       >
         {!initialized && !error && (
           <div className="text-white flex flex-col items-center">
@@ -159,8 +161,8 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                         type: "LiveStream",
                         target: scannerRef.current,
                         constraints: {
-                          width: { min: 640 },
-                          height: { min: 480 },
+                          width: { min: 800 },
+                          height: { min: 600 },
                           facingMode: "environment",
                           aspectRatio: { min: 1, max: 2 }
                         },
@@ -179,7 +181,9 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                           "code_39_reader", 
                           "code_93_reader",
                           "upc_reader",
-                          "upc_e_reader"
+                          "upc_e_reader",
+                          "codabar_reader",
+                          "i2of5_reader"
                         ]
                       },
                       locate: true

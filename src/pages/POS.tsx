@@ -357,47 +357,30 @@ const POS = () => {
   };
 
   const updateQuantity = (productId: number, change: number) => {
-    if (change < 0) {
-      setPaymentComplete(false);
-      setSelectedPaymentMethod(null);
-      setCart((currentCart) =>
-        currentCart
-          .map((item) => {
-            if (item.id === productId) {
-              const newQuantity = item.quantity + change;
-              return newQuantity > 0 ? { ...item, quantity: newQuantity } : item;
-            }
-            return item;
-          })
-          .filter((item) => item.quantity > 0)
-      );
-      return;
-    }
-    
-    const productInStock = products.find(p => p.id === productId);
-    const cartItem = cart.find(item => item.id === productId);
-    
-    if (!productInStock || !cartItem) return;
-    
-    if (cartItem.quantity + change > productInStock.stock) {
-      toast({
-        title: "Insufficient stock",
-        description: `Only ${productInStock.stock} units of ${productInStock.name} available.`,
-        variant: "destructive",
-      });
-      return;
-    }
-    
     setPaymentComplete(false);
     setSelectedPaymentMethod(null);
-    setCart((currentCart) =>
-      currentCart.map((item) => {
+    setCart((currentCart) => {
+      const updatedCart = currentCart.map((item) => {
         if (item.id === productId) {
-          return { ...item, quantity: item.quantity + change };
+          const newQuantity = item.quantity + change;
+          if (change > 0) {
+            const productInStock = products.find(p => p.id === productId);
+            if (!productInStock || newQuantity > productInStock.stock) {
+              toast({
+                title: "Insufficient stock",
+                description: `Only ${productInStock?.stock} units available.`,
+                variant: "destructive",
+              });
+              return item;
+            }
+          }
+          return newQuantity > 0 ? { ...item, quantity: newQuantity } : item;
         }
         return item;
-      })
-    );
+      });
+      
+      return updatedCart.filter(item => item.quantity > 0);
+    });
   };
 
   const removeFromCart = (productId: number) => {
