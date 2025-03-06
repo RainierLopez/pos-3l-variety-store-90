@@ -95,11 +95,15 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         // Improve detection by processing results with confidence score
         Quagga.onDetected((result) => {
           if (result && result.codeResult && result.codeResult.code) {
-            // Check if decodedCodes array exists and has at least one item with confidence property
+            // Check if decodedCodes array exists and has at least one item with high confidence
+            // Using type-safe check for confidence property
             if (
               result.codeResult.decodedCodes && 
               result.codeResult.decodedCodes.length > 0 &&
-              result.codeResult.decodedCodes.some(code => code.confidence && code.confidence > 0.65)
+              result.codeResult.decodedCodes.some(code => {
+                // Type-safe check if this code object has a confidence property and it's high enough
+                return typeof (code as any).confidence === 'number' && (code as any).confidence > 0.65;
+              })
             ) {
               processBarcode(result.codeResult.code);
             }
@@ -173,7 +177,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                           width: { min: 800 },
                           height: { min: 600 },
                           facingMode: "environment",
-                          aspectRatio: { exact: 1 } // Force exact 1:1 aspect ratio to keep camera centered
+                          aspectRatio: { exact: 1 }
                         },
                       },
                       locator: {
@@ -194,7 +198,6 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                           "codabar_reader",
                           "i2of5_reader"
                         ],
-                        // Increase multiple passes to improve accuracy
                         multiple: false
                       },
                       locate: true
