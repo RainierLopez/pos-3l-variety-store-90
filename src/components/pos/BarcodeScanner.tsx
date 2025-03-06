@@ -95,8 +95,12 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         // Improve detection by processing results with confidence score
         Quagga.onDetected((result) => {
           if (result && result.codeResult && result.codeResult.code) {
-            // Only process barcodes with confidence above threshold
-            if (result.codeResult.confidence > 0.65) {
+            // Check if decodedCodes array exists and has at least one item with confidence property
+            if (
+              result.codeResult.decodedCodes && 
+              result.codeResult.decodedCodes.length > 0 &&
+              result.codeResult.decodedCodes.some(code => code.confidence && code.confidence > 0.65)
+            ) {
               processBarcode(result.codeResult.code);
             }
           }
