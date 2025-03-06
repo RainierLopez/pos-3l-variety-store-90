@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -36,26 +35,11 @@ const POS = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [currentTransactionForReceipt, setCurrentTransactionForReceipt] = useState<Transaction | null>(null);
   
-  // Camera barcode scanner state
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
-  const [hasOpenedScanner, setHasOpenedScanner] = useState(false);
-
+  
   useEffect(() => {
     localStorage.setItem("products", JSON.stringify(products));
   }, [products]);
-
-  // Automatically open scanner when component mounts
-  useEffect(() => {
-    if (!hasOpenedScanner) {
-      // Slight delay to ensure page is loaded
-      const timer = setTimeout(() => {
-        setShowBarcodeScanner(true);
-        setHasOpenedScanner(true);
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [hasOpenedScanner]);
 
   const handleBarcodeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setBarcodeInput(e.target.value);

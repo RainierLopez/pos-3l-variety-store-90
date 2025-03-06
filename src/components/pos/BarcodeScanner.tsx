@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, CameraOff, RefreshCw } from 'lucide-react';
+import { Camera, CameraOff, RefreshCw, Zap, ZapOff, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import Quagga from '@ericblade/quagga2';
@@ -25,6 +25,8 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
   const [scanning, setScanning] = useState(true);
   const debounceTimerRef = useRef<number | null>(null);
+  const [torchEnabled, setTorchEnabled] = useState(false);
+  const videoStreamRef = useRef<MediaStream | null>(null);
 
   // Prevent multiple scans of the same barcode
   const processBarcode = (code: string) => {
@@ -95,6 +97,12 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           locate: true
         });
 
+        // Get the video stream for torch control
+        const videoTrack = Quagga.CameraAccess.getActiveTrack();
+        if (videoTrack) {
+          videoStreamRef.current = new MediaStream([videoTrack]);
+        }
+
         Quagga.start();
         setInitialized(true);
         setError(null);
@@ -138,6 +146,38 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     const currentIndex = cameras.findIndex(camera => camera.deviceId === activeCamera);
     const nextIndex = (currentIndex + 1) % cameras.length;
     setActiveCamera(cameras[nextIndex].deviceId);
+  };
+
+  const toggleTorch = async () => {
+    if (!videoStreamRef.current) return;
+    
+    const videoTrack = videoStreamRef.current.getVideoTracks()[0];
+    if (!videoTrack) return;
+    
+    try {
+      const capabilities = videoTrack.getCapabilities();
+      if (!capabilities.torch) {
+        toast({
+          title: "Not Supported",
+          description: "Torch mode is not supported by your device",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      await videoTrack.applyConstraints({
+        advanced: [{ torch: !torchEnabled }]
+      });
+      
+      setTorchEnabled(!torchEnabled);
+    } catch (err) {
+      console.error("Error toggling torch:", err);
+      toast({
+        title: "Error",
+        description: "Could not toggle torch mode",
+        variant: "destructive",
+      });
+    }
   };
 
   const toggleScanner = () => {
@@ -188,12 +228,18 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md overflow-hidden">
-        <div className="p-4 bg-[#8B4513] text-white flex justify-between items-center">
-          <h3 className="text-lg font-medium">Barcode Scanner</h3>
-          <button onClick={onClose} className="text-white hover:text-gray-200">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
+      <div className="bg-gray-900 rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-700">
+        <div className="p-4 bg-gradient-to-r from-purple-700 to-indigo-800 text-white flex justify-between items-center">
+          <h3 className="text-lg font-medium flex items-center">
+            <Camera className="h-5 w-5 mr-2" /> 
+            Scanner
+          </h3>
+          <button 
+            onClick={onClose} 
+            className="text-white hover:text-gray-200 bg-black bg-opacity-30 rounded-full p-1"
+          >
+            <X className="h-5 w-5" />
           </button>
         </div>
         
@@ -203,7 +249,10 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             className="w-full h-[300px] bg-black flex items-center justify-center relative overflow-hidden"
           >
             {!initialized && !error && (
-              <div className="text-white">Initializing camera...</div>
+              <div className="text-white flex flex-col items-center">
+                <Camera className="h-16 w-16 animate-pulse mb-2" />
+                <p className="text-lg">Initializing camera...</p>
+              </div>
             )}
             
             {error && (
@@ -211,7 +260,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                 <p>{error}</p>
                 <Button 
                   onClick={toggleScanner} 
-                  variant="outline"
+                  variant="destructive"
                   className="mt-2"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
@@ -220,32 +269,51 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               </div>
             )}
             
-            {/* Scanner overlay */}
+            {/* Fixed scanner frame */}
             <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-red-500 opacity-70 z-20 shadow-md"></div>
-              <div className="absolute top-[10%] bottom-[10%] left-[10%] right-[10%] border-2 border-white border-opacity-50 rounded-lg"></div>
+              {/* Horizontal red scan line with animation */}
+              <div className="absolute left-0 right-0 h-0.5 bg-red-500 shadow-[0_0_5px_red] z-20 scan-line-animation"></div>
+              
+              {/* Corner guides for targeting */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-[280px] h-[280px] relative">
+                  {/* Top-left corner */}
+                  <div className="absolute -top-1 -left-1 w-10 h-10 border-t-2 border-l-2 border-green-400"></div>
+                  {/* Top-right corner */}
+                  <div className="absolute -top-1 -right-1 w-10 h-10 border-t-2 border-r-2 border-green-400"></div>
+                  {/* Bottom-left corner */}
+                  <div className="absolute -bottom-1 -left-1 w-10 h-10 border-b-2 border-l-2 border-green-400"></div>
+                  {/* Bottom-right corner */}
+                  <div className="absolute -bottom-1 -right-1 w-10 h-10 border-b-2 border-r-2 border-green-400"></div>
+                </div>
+              </div>
+              
+              {/* Semi-transparent overlay to focus attention on the scan area */}
+              <div className="absolute inset-0 bg-gradient-radial from-transparent to-black opacity-50"></div>
             </div>
           </div>
           
           {/* Status indicator */}
-          <div className="absolute top-0 left-0 right-0 p-2 bg-black bg-opacity-60 text-white text-center">
+          <div className="absolute top-0 left-0 right-0 p-2 bg-gradient-to-r from-indigo-900 to-purple-900 bg-opacity-80 text-white text-center text-sm font-medium">
             {scanning ? 'Scanner active - position barcode in the frame' : 'Scanner paused'}
           </div>
           
           {/* Last detected barcode */}
           {lastScannedCode && (
-            <div className="absolute bottom-0 left-0 right-0 bg-white bg-opacity-80 p-2 text-center font-bold">
-              Detected: {lastScannedCode}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-r from-indigo-600 to-purple-600 p-3 text-center font-bold text-white flex items-center justify-center gap-2">
+              <span className="text-xs uppercase tracking-wide opacity-75">Detected:</span>
+              <span className="text-xl">{lastScannedCode}</span>
             </div>
           )}
         </div>
         
-        <div className="p-4 flex justify-between">
-          <div className="flex space-x-2">
+        <div className="p-4 bg-gray-800 grid grid-cols-2 gap-2">
+          <div className="col-span-2 flex space-x-2 mb-2">
             <Button 
               onClick={toggleScanner} 
-              variant="outline"
-              className="flex items-center"
+              variant={initialized ? "destructive" : "default"}
+              className="flex-1 flex items-center justify-center"
+              size="sm"
             >
               {initialized ? <CameraOff className="w-4 h-4 mr-2" /> : <Camera className="w-4 h-4 mr-2" />}
               {initialized ? 'Stop' : 'Start'}
@@ -254,9 +322,10 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             {cameras.length > 1 && (
               <Button 
                 onClick={switchCamera} 
-                variant="outline"
+                variant="secondary"
                 disabled={!initialized}
-                className="flex items-center"
+                className="flex-1 flex items-center justify-center"
+                size="sm"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Switch Camera
@@ -266,13 +335,34 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           
           <Button 
             onClick={() => setScanning(!scanning)}
-            variant={scanning ? "default" : "destructive"}
-            className="flex items-center"
+            variant={scanning ? "outline" : "default"}
+            className="flex items-center justify-center border-green-500"
+            size="sm"
           >
             {scanning ? 'Pause' : 'Resume'} Scanning
+          </Button>
+          
+          <Button 
+            onClick={toggleTorch} 
+            variant="outline" 
+            className="flex items-center justify-center border-yellow-500"
+            size="sm"
+          >
+            {torchEnabled ? (
+              <>
+                <ZapOff className="w-4 h-4 mr-2" /> 
+                Torch Off
+              </>
+            ) : (
+              <>
+                <Zap className="w-4 h-4 mr-2" /> 
+                Torch On
+              </>
+            )}
           </Button>
         </div>
       </div>
     </div>
   );
 };
+

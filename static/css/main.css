@@ -1,4 +1,3 @@
-
 /* Main Styles for POS System */
 :root {
     --primary-color: #8B4513;
@@ -230,4 +229,38 @@ body {
 .badge-danger {
     color: #fff;
     background-color: var(--danger);
+}
+
+/* Barcode Scanner animations and styles */
+.scan-line-animation {
+    top: 0;
+    animation: scanline 2s linear infinite;
+}
+
+@keyframes scanline {
+    0% {
+        top: 5%;
+    }
+    50% {
+        top: 95%;
+    }
+    100% {
+        top: 5%;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.5;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.5;
+    }
+}
+
+.bg-gradient-radial {
+    background-image: radial-gradient(circle at center, transparent 30%, black 100%);
 }
