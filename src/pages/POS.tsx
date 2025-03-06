@@ -60,15 +60,27 @@ const POS = () => {
       });
       setBarcodeInput("");
     } else {
-      toast({
-        title: "Product Not Found",
-        description: "No product matches this barcode.",
-        variant: "destructive",
-      });
+      const numericBarcode = barcodeInput.replace(/^0+/, '');
+      const productWithNumericBarcode = products.find(p => p.barcode.replace(/^0+/, '') === numericBarcode);
+      
+      if (productWithNumericBarcode) {
+        addToCart(productWithNumericBarcode);
+        toast({
+          title: "Product Found",
+          description: `${productWithNumericBarcode.name} has been added to your cart.`,
+        });
+      } else {
+        toast({
+          title: "Product Not Found",
+          description: `No product matches barcode: ${barcodeInput}`,
+          variant: "destructive",
+        });
+      }
     }
   };
 
   const handleBarcodeDetected = (barcode: string) => {
+    console.log("Barcode detected in POS component:", barcode);
     const product = products.find(p => p.barcode === barcode);
     if (product) {
       addToCart(product);
@@ -77,11 +89,22 @@ const POS = () => {
         description: `${product.name} has been added to your cart.`,
       });
     } else {
-      toast({
-        title: "Product Not Found",
-        description: `No product matches barcode: ${barcode}`,
-        variant: "destructive",
-      });
+      const numericBarcode = barcode.replace(/^0+/, '');
+      const productWithNumericBarcode = products.find(p => p.barcode.replace(/^0+/, '') === numericBarcode);
+      
+      if (productWithNumericBarcode) {
+        addToCart(productWithNumericBarcode);
+        toast({
+          title: "Product Found",
+          description: `${productWithNumericBarcode.name} has been added to your cart.`,
+        });
+      } else {
+        toast({
+          title: "Product Not Found",
+          description: `No product matches barcode: ${barcode}`,
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -489,14 +512,18 @@ const POS = () => {
         <script>
           document.addEventListener('DOMContentLoaded', function() {
             ${products.map(product => `
-              JsBarcode("#barcode-${product.id}", "${product.barcode}", {
-                format: "EAN13",
-                width: 1.5,
-                height: 40,
-                displayValue: true,
-                fontSize: 12,
-                margin: 10
-              });
+              try {
+                JsBarcode("#barcode-${product.id}", "${product.barcode}", {
+                  format: "CODE128",
+                  width: 1.5,
+                  height: 40,
+                  displayValue: true,
+                  fontSize: 12,
+                  margin: 10
+                });
+              } catch (e) {
+                console.error("Error generating barcode for ${product.barcode}:", e);
+              }
             `).join('')}
           });
         </script>

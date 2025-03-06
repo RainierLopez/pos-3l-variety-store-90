@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Camera, CameraOff, RefreshCw, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -93,9 +94,9 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               },
               decoder: {
                 readers: [
+                  "code_128_reader", // Prioritize Code-128 by putting it first
                   "ean_reader",
                   "ean_8_reader",
-                  "code_128_reader", 
                   "code_39_reader", 
                   "code_93_reader",
                   "upc_reader",
@@ -106,8 +107,8 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                 multiple: false
               },
               locate: true,
-              frequency: 5,
-              numOfWorkers: 2,
+              frequency: 10, // Increase frequency for better scanning
+              numOfWorkers: 4, // Increase workers for better performance
             }, function(err) {
               if (err) {
                 console.error("Error initializing scanner:", err);
@@ -122,13 +123,16 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
             Quagga.onDetected((result) => {
               if (result && result.codeResult && result.codeResult.code) {
-                console.log("Detected barcode:", result.codeResult.code);
+                console.log("Detected barcode:", result.codeResult.code, "Format:", result.codeResult.format);
                 
+                // For Code-128, we'll use a slightly lower confidence threshold since it's more reliable
+                let confidenceThreshold = result.codeResult.format === 'code_128' ? 0.50 : 0.65;
                 let highConfidence = false;
+                
                 if (result.codeResult.decodedCodes) {
                   for (let i = 0; i < result.codeResult.decodedCodes.length; i++) {
                     const code = result.codeResult.decodedCodes[i];
-                    if (code && typeof (code as any).confidence === 'number' && (code as any).confidence > 0.65) {
+                    if (code && typeof (code as any).confidence === 'number' && (code as any).confidence > confidenceThreshold) {
                       highConfidence = true;
                       break;
                     }
@@ -208,13 +212,13 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                 patchSize: "medium",
                 halfSample: true
               },
-              numOfWorkers: 2,
-              frequency: 5,
+              numOfWorkers: 4,
+              frequency: 10,
               decoder: {
                 readers: [
+                  "code_128_reader", // Prioritize Code-128
                   "ean_reader",
                   "ean_8_reader",
-                  "code_128_reader", 
                   "code_39_reader", 
                   "code_93_reader",
                   "upc_reader",
@@ -243,13 +247,16 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             
             Quagga.onDetected((result) => {
               if (result && result.codeResult && result.codeResult.code) {
-                console.log("Detected barcode on retry:", result.codeResult.code);
+                console.log("Detected barcode on retry:", result.codeResult.code, "Format:", result.codeResult.format);
                 
+                // For Code-128, we'll use a slightly lower confidence threshold
+                let confidenceThreshold = result.codeResult.format === 'code_128' ? 0.50 : 0.65;
                 let hasConfidence = false;
+                
                 if (result.codeResult.decodedCodes) {
                   for (let i = 0; i < result.codeResult.decodedCodes.length; i++) {
                     const code = result.codeResult.decodedCodes[i];
-                    if (code && typeof (code as any).confidence === 'number' && (code as any).confidence > 0.5) {
+                    if (code && typeof (code as any).confidence === 'number' && (code as any).confidence > confidenceThreshold) {
                       hasConfidence = true;
                       break;
                     }
