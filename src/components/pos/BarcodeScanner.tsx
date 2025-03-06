@@ -187,30 +187,13 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           </div>
         )}
         
-        {/* Scanner frame guides */}
-        <div className="absolute inset-0 pointer-events-none">
-          {/* Horizontal red scan line with animation */}
-          <div className="absolute left-0 right-0 h-0.5 bg-red-500 shadow-[0_0_5px_red] z-20 scan-line-animation"></div>
-          
-          {/* Corner guides */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-[180px] h-[120px] relative">
-              {/* Top-left corner */}
-              <div className="absolute -top-1 -left-1 w-8 h-8 border-t-2 border-l-2 border-green-400"></div>
-              {/* Top-right corner */}
-              <div className="absolute -top-1 -right-1 w-8 h-8 border-t-2 border-r-2 border-green-400"></div>
-              {/* Bottom-left corner */}
-              <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-2 border-l-2 border-green-400"></div>
-              {/* Bottom-right corner */}
-              <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-2 border-r-2 border-green-400"></div>
-            </div>
-          </div>
-          
-          {/* Scanner hint */}
-          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-1 text-center">
-            Position barcode in the frame
-          </div>
+        {/* Scanner hints */}
+        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-1 text-center">
+          Position barcode in view to scan
         </div>
+        
+        {/* Horizontal red scan line with animation */}
+        <div className="absolute left-0 right-0 h-0.5 bg-red-500 shadow-[0_0_5px_red] z-20 scan-line-animation"></div>
       </div>
       
       {/* Last detected barcode */}
