@@ -51,16 +51,17 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       try {
         if (!scannerRef.current) return;
 
-        // Initialize Quagga
+        // Initialize Quagga with improved settings for better barcode detection
         await Quagga.init({
           inputStream: {
             name: "Live",
             type: "LiveStream",
             target: scannerRef.current,
             constraints: {
-              width: { min: 300 },
-              height: { min: 200 },
+              width: { min: 640 },
+              height: { min: 480 },
               facingMode: "environment",
+              aspectRatio: { min: 1, max: 2 }
             },
           },
           locator: {
@@ -70,7 +71,15 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           numOfWorkers: navigator.hardwareConcurrency || 4,
           frequency: 10,
           decoder: {
-            readers: ["ean_reader", "ean_8_reader", "code_128_reader", "code_39_reader", "code_93_reader"]
+            readers: [
+              "ean_reader",
+              "ean_8_reader",
+              "code_128_reader", 
+              "code_39_reader", 
+              "code_93_reader",
+              "upc_reader",
+              "upc_e_reader"
+            ]
           },
           locate: true
         });
@@ -126,7 +135,8 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       
       <div 
         ref={scannerRef} 
-        className="w-full h-[200px] bg-black flex items-center justify-center relative overflow-hidden"
+        className="w-full h-[300px] bg-black flex items-center justify-center relative overflow-hidden"
+        style={{ aspectRatio: '4/3' }}
       >
         {!initialized && !error && (
           <div className="text-white flex flex-col items-center">
@@ -149,9 +159,10 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                         type: "LiveStream",
                         target: scannerRef.current,
                         constraints: {
-                          width: { min: 300 },
-                          height: { min: 200 },
+                          width: { min: 640 },
+                          height: { min: 480 },
                           facingMode: "environment",
+                          aspectRatio: { min: 1, max: 2 }
                         },
                       },
                       locator: {
@@ -161,7 +172,15 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                       numOfWorkers: navigator.hardwareConcurrency || 4,
                       frequency: 10,
                       decoder: {
-                        readers: ["ean_reader", "ean_8_reader", "code_128_reader", "code_39_reader", "code_93_reader"]
+                        readers: [
+                          "ean_reader",
+                          "ean_8_reader",
+                          "code_128_reader", 
+                          "code_39_reader", 
+                          "code_93_reader",
+                          "upc_reader",
+                          "upc_e_reader"
+                        ]
                       },
                       locate: true
                     }, function(err: any) {

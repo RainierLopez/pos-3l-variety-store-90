@@ -26,7 +26,7 @@ const POS = () => {
     cvv: "",
   });
   const [barcodeInput, setBarcodeInput] = useState("");
-  const [isProductCatalogCollapsed, setIsProductCatalogCollapsed] = useState(false);
+  const [isProductCatalogCollapsed, setIsProductCatalogCollapsed] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
 
