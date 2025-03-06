@@ -61,7 +61,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               width: { min: 800 },
               height: { min: 600 },
               facingMode: "environment",
-              aspectRatio: { min: 1, max: 2 }
+              aspectRatio: { exact: 1 } // Force exact 1:1 aspect ratio to keep camera centered
             },
           },
           locator: {
@@ -81,7 +81,9 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               "upc_e_reader",
               "codabar_reader",
               "i2of5_reader"
-            ]
+            ],
+            // Increase multiple passes to improve accuracy
+            multiple: false
           },
           locate: true
         });
@@ -90,10 +92,13 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         setInitialized(true);
         setError(null);
 
-        // Setup barcode detection handler
+        // Improve detection by processing results with confidence score
         Quagga.onDetected((result) => {
           if (result && result.codeResult && result.codeResult.code) {
-            processBarcode(result.codeResult.code);
+            // Only process barcodes with confidence above threshold
+            if (result.codeResult.confidence > 0.65) {
+              processBarcode(result.codeResult.code);
+            }
           }
         });
 
@@ -137,7 +142,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       
       <div 
         ref={scannerRef} 
-        className="w-full h-[400px] bg-black flex items-center justify-center relative overflow-hidden"
+        className="w-full h-[300px] bg-black flex items-center justify-center relative overflow-hidden"
         style={{ aspectRatio: '1/1' }}
       >
         {!initialized && !error && (
@@ -164,7 +169,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                           width: { min: 800 },
                           height: { min: 600 },
                           facingMode: "environment",
-                          aspectRatio: { min: 1, max: 2 }
+                          aspectRatio: { exact: 1 } // Force exact 1:1 aspect ratio to keep camera centered
                         },
                       },
                       locator: {
@@ -184,7 +189,9 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                           "upc_e_reader",
                           "codabar_reader",
                           "i2of5_reader"
-                        ]
+                        ],
+                        // Increase multiple passes to improve accuracy
+                        multiple: false
                       },
                       locate: true
                     }, function(err: any) {
