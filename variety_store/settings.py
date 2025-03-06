@@ -1,4 +1,3 @@
-
 import os
 from pathlib import Path
 
@@ -27,8 +26,8 @@ INSTALLED_APPS = [
     'rest_framework',
     
     # Custom apps
-    'pos',
-    'users',
+    'pos.apps.PosConfig',
+    'users.apps.UsersConfig',
 ]
 
 MIDDLEWARE = [
