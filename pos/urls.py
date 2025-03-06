@@ -20,6 +20,7 @@ urlpatterns = [
     
     # Barcode Scanner
     path('barcode-scanner/', views.barcode_scanner, name='barcode_scanner'),
+    path('camera-scanner/', views.camera_scanner, name='camera_scanner'),
     
     # API endpoints - Products
     path('api/products/', views.get_products, name='get_products'),

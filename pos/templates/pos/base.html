@@ -24,6 +24,7 @@
                 <a href="{% url 'pos_home' %}" class="text-gray-600 hover:text-[#8B4513]">POS</a>
                 <a href="{% url 'transactions_list' %}" class="text-gray-600 hover:text-[#8B4513]">Transactions</a>
                 <a href="{% url 'inventory_management' %}" class="text-gray-600 hover:text-[#8B4513]">Inventory</a>
+                <a href="{% url 'camera_scanner' %}" class="text-gray-600 hover:text-[#8B4513]">Camera Scanner</a>
                 {% if user.profile.role == 'admin' %}
                 <a href="{% url 'sales_report' %}" class="text-gray-600 hover:text-[#8B4513]">Reports</a>
                 <a href="{% url 'user_list' %}" class="text-gray-600 hover:text-[#8B4513]">Users</a>

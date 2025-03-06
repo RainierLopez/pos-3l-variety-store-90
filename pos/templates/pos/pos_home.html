@@ -49,6 +49,29 @@
         border-color: #8B4513;
         background-color: rgba(139, 69, 19, 0.1);
     }
+    .camera-button {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        z-index: 50;
+        background-color: #8B4513;
+        color: white;
+        width: 4rem;
+        height: 4rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+    }
+    .camera-button:hover {
+        transform: scale(1.1);
+        background-color: #6d3410;
+    }
+    .camera-button:active {
+        transform: scale(0.95);
+    }
 </style>
 {% endblock %}
 
@@ -379,6 +402,10 @@ class="min-h-screen bg-gradient-to-br from-white to-pink-50"
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="6" height="14" x="4" y="5" rx="2"/><rect width="6" height="10" x="14" y="9" rx="2"/><path d="M22 19h-8"/><path d="M7 19h1"/><path d="M4 19h1"/></svg>
                     Scan Barcode
                 </button>
+                <a href="{% url 'camera_scanner' %}" class="text-white hover:text-white/80 hover:bg-white/10 flex items-center gap-2 px-3 py-1 rounded transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                    Camera Scanner
+                </a>
                 <a href="{% url 'transactions_list' %}" class="text-white hover:text-white/80 hover:bg-white/10 flex items-center gap-2 px-3 py-1 rounded transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                     Transactions
@@ -389,6 +416,11 @@ class="min-h-screen bg-gradient-to-br from-white to-pink-50"
             </div>
         </div>
     </div>
+
+    <!-- Camera scanner floating button -->
+    <a href="{% url 'camera_scanner' %}" class="camera-button" title="Open Camera Scanner">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+    </a>
 
     <div class="p-4">
         {% csrf_token %}
