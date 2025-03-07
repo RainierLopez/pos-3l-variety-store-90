@@ -20,17 +20,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
   const [scannerInitialized, setScannerInitialized] = useState(false);
   const { toast } = useToast();
 
-  // Reset scanner state when dialog is opened or closed
   useEffect(() => {
     if (isOpen) {
       setErrorMessage(null);
       setLastScannedCode(null);
       setScannerInitialized(false);
       
-      // Request camera permissions explicitly when dialog opens
       requestCameraPermission();
     } else {
-      // Stop scanner when dialog closes
       stopScanner();
     }
     
@@ -39,7 +36,6 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
     };
   }, [isOpen]);
 
-  // Initialize scanner when active camera is set
   useEffect(() => {
     if (isOpen && activeCamera && scannerRef.current && !scannerInitialized) {
       initQuagga();
@@ -49,7 +45,6 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
   const requestCameraPermission = async () => {
     try {
       setErrorMessage('Requesting camera access...');
-      // Explicitly request camera permissions with specific constraints
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           facingMode: 'environment',
@@ -58,13 +53,10 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
         } 
       });
       
-      // Keep the stream open to maintain camera access
       const tracks = stream.getTracks();
       
-      // List available cameras after permission is granted
       await listCameras();
       
-      // Stop the temporary stream only after we've set up the real one
       setTimeout(() => {
         tracks.forEach(track => track.stop());
       }, 500);
@@ -85,7 +77,6 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
       setCameras(videoDevices);
       
       if (videoDevices.length > 0) {
-        // Prefer the back camera if available (environment facing)
         const backCamera = videoDevices.find(device => 
           device.label.toLowerCase().includes('back') || 
           device.label.toLowerCase().includes('rear') ||
@@ -109,7 +100,6 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
       Quagga.stop();
       setScannerInitialized(false);
     } catch (e) {
-      // Ignore errors when stopping (Quagga might not be initialized)
     }
   };
 
@@ -151,13 +141,10 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
         decoder: {
           readers: ['ean_reader', 'ean_8_reader', 'code_128_reader', 'code_39_reader', 'code_93_reader'],
           debug: {
-            showCanvas: true,
-            showPatches: true,
-            showFoundPatches: true,
-            showSkeleton: true,
-            showLabels: true,
-            showPatchLabels: true,
-            showRemainingPatchLabels: true,
+            drawBoundingBox: true,
+            showFrequency: true,
+            drawScanline: true,
+            showPattern: true
           }
         },
         locate: true,
@@ -180,7 +167,6 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
           const drawingCanvas = Quagga.canvas.dom.overlay;
           
           if (drawingCtx && drawingCanvas) {
-            // Clear the canvas
             drawingCtx.clearRect(0, 0, parseInt(drawingCanvas.getAttribute("width") || "0"), 
                                     parseInt(drawingCanvas.getAttribute("height") || "0"));
               
@@ -206,31 +192,25 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
           const code = result.codeResult.code;
           if (!code) return;
           
-          // Prevent duplicates (only process if this is a new barcode or 3 seconds have passed)
           if (lastScannedCode === code && Date.now() - lastScanTime < 3000) {
             return;
           }
           
           console.log('Barcode detected:', code);
           
-          // Set new last scan time
           setLastScannedCode(code);
           setLastScanTime(Date.now());
           
-          // Play a beep sound
           const audio = new Audio('/static/sounds/beep.mp3');
           audio.play().catch(e => console.log('Error playing sound:', e));
 
-          // Notify user
           toast({
             title: "Barcode detected!",
             description: `Code: ${code}`,
           });
 
-          // Pass the barcode to parent component
           onBarcodeDetected(code);
           
-          // Temporarily pause scanner to prevent multiple scans
           stopScanner();
           setTimeout(() => {
             if (isOpen && scannerRef.current && activeCamera) {
@@ -242,7 +222,6 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
     );
   };
 
-  // Track last scan time to prevent duplicate scans
   const [lastScanTime, setLastScanTime] = useState(0);
 
   const changeCamera = (deviceId: string) => {
