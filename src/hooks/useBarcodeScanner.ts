@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import Quagga from '@ericblade/quagga2';
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +11,47 @@ import {
   resetVideoElement,
   stopStreamTracks
 } from '@/utils/cameraUtils';
+
+// Define types for Quagga since the library's typings aren't fully defined
+interface QuaggaJSConfigObject {
+  inputStream: {
+    name?: string;
+    type: 'ImageStream' | 'VideoStream' | 'LiveStream';
+    target?: HTMLElement | null;
+    constraints?: MediaTrackConstraints & {
+      width?: { min?: number; ideal?: number; max?: number };
+      height?: { min?: number; ideal?: number; max?: number };
+      aspectRatio?: { min?: number; max?: number };
+      facingMode?: string;
+      deviceId?: string;
+    };
+    area?: {
+      top?: string;
+      right?: string;
+      left?: string;
+      bottom?: string;
+    };
+    singleChannel?: boolean;
+    size?: number;
+    willReadFrequently?: boolean;
+  };
+  locator?: {
+    patchSize?: 'x-small' | 'small' | 'medium' | 'large' | 'x-large';
+    halfSample?: boolean;
+  };
+  numOfWorkers?: number;
+  frequency?: number;
+  decoder?: {
+    readers?: string[];
+    debug?: {
+      drawBoundingBox?: boolean;
+      showFrequency?: boolean;
+      drawScanline?: boolean;
+      showPattern?: boolean;
+    };
+  };
+  locate?: boolean;
+}
 
 export interface UseBarcodeScanner {
   scannerRef: React.RefObject<HTMLDivElement>;
@@ -155,11 +197,11 @@ export function useBarcodeScanner(
     
     console.log('Initializing Quagga with camera ID:', activeCamera);
     
-    // Define the Quagga configuration with proper type annotations
-    const quaggaConfig: Quagga.QuaggaJSConfigObject = {
+    // Define the Quagga configuration with our custom type
+    const quaggaConfig: QuaggaJSConfigObject = {
       inputStream: {
         name: 'Live',
-        type: 'LiveStream' as Quagga.InputStreamType,
+        type: 'LiveStream',
         target: scannerRef.current,
         constraints: {
           width: { min: 640, ideal: 1280, max: 1920 },
