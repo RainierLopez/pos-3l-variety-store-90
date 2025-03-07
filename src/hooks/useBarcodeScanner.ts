@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import Quagga from '@ericblade/quagga2';
 import { useToast } from "@/hooks/use-toast";
@@ -156,11 +155,11 @@ export function useBarcodeScanner(
     
     console.log('Initializing Quagga with camera ID:', activeCamera);
     
-    // Fix the type issue by using the correct type configuration
-    const quaggaConfig = {
+    // Define the Quagga configuration with proper type annotations
+    const quaggaConfig: Quagga.QuaggaJSConfigObject = {
       inputStream: {
         name: 'Live',
-        type: 'LiveStream',
+        type: 'LiveStream' as Quagga.InputStreamType,
         target: scannerRef.current,
         constraints: {
           width: { min: 640, ideal: 1280, max: 1920 },
