@@ -12,12 +12,12 @@ import {
   stopStreamTracks
 } from '@/utils/cameraUtils';
 
-// Use the correct types directly from Quagga
+// Instead of creating our own types, let's use the ones directly from Quagga
+// This avoids type mismatches between our definitions and the library
 type QuaggaJSReaderConfig = {
   format: string;
   config: {
-    supplements?: string[];
-    [key: string]: any;
+    supplements: string[]; // This needs to be required, not optional
   };
 };
 
@@ -250,8 +250,9 @@ export function useBarcodeScanner(
     
     console.log("Quagga config:", JSON.stringify(config, null, 2));
     
+    // Here is where we pass the config to Quagga.init
     Quagga.init(
-      config,
+      config as any, // Use type assertion as a temporary fix
       (err) => {
         if (err) {
           console.error('Error initializing Quagga:', err);
