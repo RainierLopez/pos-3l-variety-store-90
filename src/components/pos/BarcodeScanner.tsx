@@ -124,7 +124,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
                 className="w-full overflow-hidden rounded-lg relative"
                 style={{ height: '300px', background: '#333' }}
               >
-                {/* Direct video fallback element - displayed when Quagga fails */}
+                {/* Direct video fallback element - always rendered but will be hidden when Quagga is active */}
                 <video 
                   ref={videoRef}
                   autoPlay
@@ -132,15 +132,18 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
                   muted
                   onClick={videoClickHandler}
                   style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
-                    display: 'block' // Changed from none to block so it's always visible
+                    zIndex: 5
                   }}
                 />
                 
-                {(isLoading || (!scannerInitialized && !videoRef.current?.srcObject && !errorMessage)) && (
-                  <div className="absolute inset-0 flex items-center justify-center">
+                {(isLoading || (!scannerInitialized && !videoRef.current?.srcObject)) && (
+                  <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 10 }}>
                     <Camera className="h-12 w-12 text-gray-400 animate-pulse" />
                   </div>
                 )}
@@ -169,6 +172,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
                       top: 50%;
                       transform: translate(-50%, -50%);
                       border: 2px solid rgba(255, 255, 255, 0.5);
+                      z-index: 20;
                     }
                     .scanner-guides::before {
                       width: 70%;

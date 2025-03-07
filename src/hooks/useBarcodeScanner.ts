@@ -11,9 +11,6 @@ import {
   stopStreamTracks
 } from '@/utils/cameraUtils';
 
-// Skip type definitions and use type assertions where needed
-// This avoids TypeScript errors with the Quagga library
-
 export interface UseBarcodeScanner {
   scannerRef: React.RefObject<HTMLDivElement>;
   videoRef: React.RefObject<HTMLVideoElement>;
@@ -44,9 +41,9 @@ export function useBarcodeScanner(
   const [scannerInitialized, setScannerInitialized] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [quaggaAttempts, setQuaggaAttempts] = useState(0);
   const { toast } = useToast();
 
-  // Initialize camera when component mounts
   useEffect(() => {
     if (isOpen) {
       console.log("Scanner dialog opened, initializing camera");
@@ -64,7 +61,6 @@ export function useBarcodeScanner(
     };
   }, [isOpen]);
 
-  // Set up scanner when active camera changes
   useEffect(() => {
     if (isOpen && activeCamera && scannerRef.current && !scannerInitialized) {
       console.log("Active camera set, setting up Quagga");
@@ -72,7 +68,6 @@ export function useBarcodeScanner(
     }
   }, [activeCamera, isOpen, scannerInitialized]);
 
-  // Ensure video element is properly set up when stream changes
   useEffect(() => {
     if (stream && videoRef.current) {
       console.log("Stream changed, updating video element");
@@ -80,14 +75,32 @@ export function useBarcodeScanner(
     }
   }, [stream]);
 
+  useEffect(() => {
+    let retryTimer: number | null = null;
+    
+    if (isOpen && stream && !scannerInitialized && quaggaAttempts < 3) {
+      console.log(`Video stream exists but Quagga not initialized. Attempt ${quaggaAttempts + 1}/3`);
+      retryTimer = window.setTimeout(() => {
+        setQuaggaAttempts(prev => prev + 1);
+        if (activeCamera) {
+          setupQuagga();
+        }
+      }, 2000);
+    }
+    
+    return () => {
+      if (retryTimer) clearTimeout(retryTimer);
+    };
+  }, [isOpen, stream, scannerInitialized, quaggaAttempts, activeCamera]);
+
   const initScanner = async () => {
     setIsLoading(true);
     setErrorMessage("Initializing camera...");
+    setQuaggaAttempts(0);
     
     try {
       console.log("Initializing scanner and requesting camera permissions");
       
-      // First get any camera access - this is crucial for permission
       const mediaStream = await requestCameraPermission();
       if (!mediaStream) {
         setErrorMessage('Camera permission denied. Please allow camera access and try again.');
@@ -95,16 +108,13 @@ export function useBarcodeScanner(
         return;
       }
       
-      // Set initial stream and attach to video
       setStream(mediaStream);
       if (videoRef.current) {
-        // Reset video element first
         resetVideoElement(videoRef.current);
         console.log("Attaching direct video stream before Quagga init");
         attachStreamToVideo(mediaStream, videoRef.current);
       }
       
-      // Then get available cameras
       const videoDevices = await getAvailableCameras();
       setCameras(videoDevices);
       
@@ -129,17 +139,17 @@ export function useBarcodeScanner(
       Quagga.stop();
       setScannerInitialized(false);
       
-      // Stop and clean up the stream
       if (stream) {
         console.log("Stopping camera stream");
         stopStreamTracks(stream);
         setStream(null);
       }
       
-      // Reset video element
       if (videoRef.current) {
         resetVideoElement(videoRef.current);
       }
+      
+      setQuaggaAttempts(0);
     } catch (e) {
       console.error("Error stopping scanner:", e);
     }
@@ -151,7 +161,6 @@ export function useBarcodeScanner(
       return;
     }
     
-    // Make sure we stop any existing instances first
     try {
       Quagga.stop();
     } catch (e) {
@@ -162,7 +171,6 @@ export function useBarcodeScanner(
     
     console.log('Initializing Quagga with camera ID:', activeCamera);
     
-    // Create a simplified configuration object
     const config = {
       inputStream: {
         name: 'Live',
@@ -206,16 +214,19 @@ export function useBarcodeScanner(
       locate: true,
     };
     
-    // Use type assertion to bypass TypeScript errors
     Quagga.init(config as any, (err) => {
       if (err) {
         console.error('Error initializing Quagga:', err);
         setErrorMessage(`Failed to initialize barcode scanner: ${err.message || 'Unknown error'}`);
         
-        // Fallback: If Quagga fails, at least show the direct camera feed
         if (stream && videoRef.current) {
           console.log("Quagga failed, showing direct camera feed");
           videoRef.current.style.display = 'block';
+          videoRef.current.style.position = 'absolute';
+          videoRef.current.style.top = '0';
+          videoRef.current.style.left = '0';
+          videoRef.current.style.width = '100%';
+          videoRef.current.style.height = '100%';
           attachStreamToVideo(stream, videoRef.current);
         }
         return;
@@ -224,10 +235,10 @@ export function useBarcodeScanner(
       console.log('Quagga initialized successfully');
       setScannerInitialized(true);
       setErrorMessage(null);
+      setQuaggaAttempts(0);
       
       Quagga.start();
       
-      // Let's hide the direct video feed if Quagga is working
       if (videoRef.current) {
         videoRef.current.style.display = 'none';
       }
@@ -265,7 +276,6 @@ export function useBarcodeScanner(
         const code = result.codeResult.code;
         if (!code) return;
         
-        // Prevent duplicate scans within 3 seconds
         if (lastScannedCode === code && Date.now() - lastScanTime < 3000) {
           return;
         }
@@ -284,7 +294,6 @@ export function useBarcodeScanner(
 
         onBarcodeDetected(code);
         
-        // Pause scanner briefly to prevent multiple scans
         stopScanner();
         setTimeout(() => {
           if (isOpen && scannerRef.current && activeCamera) {
