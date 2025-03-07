@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import Quagga from '@ericblade/quagga2';
 import { useToast } from "@/hooks/use-toast";
@@ -12,8 +11,49 @@ import {
   stopStreamTracks
 } from '@/utils/cameraUtils';
 
-// Import the types from the library directly
-type QuaggaJSConfigObject = Quagga.QuaggaJSConfigObject;
+// Define the Quagga configuration type directly without namespace reference
+interface QuaggaJSReaderConfig {
+  format: string;
+  config: Record<string, unknown>;
+}
+
+interface QuaggaJSConfigObject {
+  inputStream: {
+    name?: string;
+    type: 'LiveStream';
+    target: HTMLElement | null;
+    constraints?: MediaTrackConstraints & {
+      width?: { min?: number; ideal?: number; max?: number };
+      height?: { min?: number; ideal?: number; max?: number };
+      aspectRatio?: { min?: number; max?: number };
+      facingMode?: string;
+      deviceId?: string;
+    };
+    area?: {
+      top?: string;
+      right?: string;
+      left?: string;
+      bottom?: string;
+    };
+    willReadFrequently?: boolean;
+  };
+  locator?: {
+    patchSize?: 'medium';
+    halfSample?: boolean;
+  };
+  numOfWorkers?: number;
+  frequency?: number;
+  decoder?: {
+    readers: QuaggaJSReaderConfig[];
+    debug?: {
+      drawBoundingBox?: boolean;
+      showFrequency?: boolean;
+      drawScanline?: boolean;
+      showPattern?: boolean;
+    };
+  };
+  locate?: boolean;
+}
 
 export interface UseBarcodeScanner {
   scannerRef: React.RefObject<HTMLDivElement>;
@@ -159,7 +199,7 @@ export function useBarcodeScanner(
     
     console.log('Initializing Quagga with camera ID:', activeCamera);
     
-    // Create the configuration object
+    // Create the configuration object with our defined type
     const config: QuaggaJSConfigObject = {
       inputStream: {
         name: 'Live',
