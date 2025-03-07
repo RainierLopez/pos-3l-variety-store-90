@@ -1,7 +1,6 @@
-
 import { useState, useEffect, useRef } from 'react';
 import Quagga from '@ericblade/quagga2';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Camera, X, RefreshCcw } from "lucide-react";
@@ -49,14 +48,27 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
 
   const requestCameraPermission = async () => {
     try {
-      // Explicitly request camera permissions
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      setErrorMessage('Requesting camera access...');
+      // Explicitly request camera permissions with specific constraints
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        } 
+      });
       
-      // Stop the temporary stream immediately after obtaining permissions
-      stream.getTracks().forEach(track => track.stop());
+      // Keep the stream open to maintain camera access
+      const tracks = stream.getTracks();
       
-      // Now list available cameras
-      listCameras();
+      // List available cameras after permission is granted
+      await listCameras();
+      
+      // Stop the temporary stream only after we've set up the real one
+      setTimeout(() => {
+        tracks.forEach(track => track.stop());
+      }, 500);
+      
     } catch (error) {
       console.error('Error requesting camera permission:', error);
       setErrorMessage('Camera permission denied. Please allow camera access and try again.');
@@ -67,15 +79,22 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      
+      console.log('Available cameras:', videoDevices);
+      
       setCameras(videoDevices);
       
       if (videoDevices.length > 0) {
-        // Prefer the back camera if available
+        // Prefer the back camera if available (environment facing)
         const backCamera = videoDevices.find(device => 
           device.label.toLowerCase().includes('back') || 
-          device.label.toLowerCase().includes('rear'));
+          device.label.toLowerCase().includes('rear') ||
+          device.label.toLowerCase().includes('environment'));
         
-        setActiveCamera(backCamera?.deviceId || videoDevices[0].deviceId);
+        const cameraToUse = backCamera?.deviceId || videoDevices[0].deviceId;
+        console.log('Selected camera:', cameraToUse);
+        setActiveCamera(cameraToUse);
+        setErrorMessage(null);
       } else {
         setErrorMessage('No cameras detected on your device');
       }
@@ -101,6 +120,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
     
     setErrorMessage('Initializing camera...');
     
+    console.log('Initializing Quagga with camera ID:', activeCamera);
+    
     Quagga.init(
       {
         inputStream: {
@@ -108,19 +129,36 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
           type: 'LiveStream',
           target: scannerRef.current,
           constraints: {
-            width: 450,
-            height: 300,
+            width: { min: 320, ideal: 640, max: 1280 },
+            height: { min: 240, ideal: 480, max: 720 },
             facingMode: 'environment',
-            deviceId: activeCamera,
+            deviceId: activeCamera || undefined,
           },
+          area: { // Define a smaller scanning area to improve performance
+            top: "25%",
+            right: "10%",
+            left: "10%",
+            bottom: "25%",
+          },
+          willReadFrequently: true
         },
         locator: {
           patchSize: 'medium',
           halfSample: true,
         },
-        numOfWorkers: navigator.hardwareConcurrency || 4,
+        numOfWorkers: navigator.hardwareConcurrency || 2,
+        frequency: 10,
         decoder: {
-          readers: ['ean_reader', 'code_128_reader', 'code_39_reader', 'code_93_reader'],
+          readers: ['ean_reader', 'ean_8_reader', 'code_128_reader', 'code_39_reader', 'code_93_reader'],
+          debug: {
+            showCanvas: true,
+            showPatches: true,
+            showFoundPatches: true,
+            showSkeleton: true,
+            showLabels: true,
+            showPatchLabels: true,
+            showRemainingPatchLabels: true,
+          }
         },
         locate: true,
       },
@@ -131,6 +169,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
           return;
         }
 
+        console.log('Quagga initialized successfully');
         setScannerInitialized(true);
         setErrorMessage(null);
         
@@ -172,6 +211,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
             return;
           }
           
+          console.log('Barcode detected:', code);
+          
           // Set new last scan time
           setLastScannedCode(code);
           setLastScanTime(Date.now());
@@ -188,6 +229,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
 
           // Pass the barcode to parent component
           onBarcodeDetected(code);
+          
+          // Temporarily pause scanner to prevent multiple scans
+          stopScanner();
+          setTimeout(() => {
+            if (isOpen && scannerRef.current && activeCamera) {
+              initQuagga();
+            }
+          }, 1500);
         });
       }
     );
@@ -203,6 +252,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
   };
 
   const retryScanner = () => {
+    stopScanner();
     requestCameraPermission();
   };
 
@@ -218,6 +268,9 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
               <X className="h-4 w-4" />
             </Button>
           </DialogTitle>
+          <DialogDescription>
+            Position the barcode within the scanning area
+          </DialogDescription>
         </DialogHeader>
 
         <div className="mt-2">
