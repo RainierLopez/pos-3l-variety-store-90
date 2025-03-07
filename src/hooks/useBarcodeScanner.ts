@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import Quagga from '@ericblade/quagga2';
 import { useToast } from "@/hooks/use-toast";
@@ -101,6 +100,7 @@ export function useBarcodeScanner(
       if (videoRef.current) {
         // Reset video element first
         resetVideoElement(videoRef.current);
+        console.log("Attaching direct video stream before Quagga init");
         attachStreamToVideo(mediaStream, videoRef.current);
       }
       
@@ -151,7 +151,13 @@ export function useBarcodeScanner(
       return;
     }
     
-    stopScanner();
+    // Make sure we stop any existing instances first
+    try {
+      Quagga.stop();
+    } catch (e) {
+      console.log("No Quagga instance to stop:", e);
+    }
+    
     setErrorMessage('Initializing camera...');
     
     console.log('Initializing Quagga with camera ID:', activeCamera);
@@ -209,6 +215,7 @@ export function useBarcodeScanner(
         // Fallback: If Quagga fails, at least show the direct camera feed
         if (stream && videoRef.current) {
           console.log("Quagga failed, showing direct camera feed");
+          videoRef.current.style.display = 'block';
           attachStreamToVideo(stream, videoRef.current);
         }
         return;
@@ -219,6 +226,11 @@ export function useBarcodeScanner(
       setErrorMessage(null);
       
       Quagga.start();
+      
+      // Let's hide the direct video feed if Quagga is working
+      if (videoRef.current) {
+        videoRef.current.style.display = 'none';
+      }
       
       Quagga.onProcessed((result) => {
         const drawingCtx = Quagga.canvas.ctx.overlay;

@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 
 export async function requestCameraPermission(): Promise<MediaStream | null> {
@@ -97,13 +96,6 @@ export function attachStreamToVideo(stream: MediaStream, element: HTMLVideoEleme
     element.srcObject = stream;
     element.muted = true;
     element.playsInline = true;
-    element.autoplay = true;
-    
-    // Set important style properties
-    element.style.display = 'block';
-    element.style.width = '100%';
-    element.style.height = '100%';
-    element.style.objectFit = 'cover';
     
     // Force play and handle errors
     const playPromise = element.play();
@@ -114,14 +106,8 @@ export function attachStreamToVideo(stream: MediaStream, element: HTMLVideoEleme
         setTimeout(() => {
           element.play().catch(err => {
             console.error("Error playing video on retry:", err);
-            // Add a click handler to try playing again with user interaction
+            // If still failing, set a flag on the element
             element.setAttribute('data-needs-interaction', 'true');
-            
-            const clickHandler = () => {
-              element.play().catch(err => console.error("Error playing on click:", err));
-              element.removeEventListener('click', clickHandler);
-            };
-            element.addEventListener('click', clickHandler);
           });
         }, 500);
       });

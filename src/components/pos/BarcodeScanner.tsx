@@ -135,11 +135,11 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
-                    display: 'block'
+                    display: 'block' // Changed from none to block so it's always visible
                   }}
                 />
                 
-                {(isLoading || (!videoRef.current?.srcObject && !errorMessage)) && (
+                {(isLoading || (!scannerInitialized && !videoRef.current?.srcObject && !errorMessage)) && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Camera className="h-12 w-12 text-gray-400 animate-pulse" />
                   </div>
