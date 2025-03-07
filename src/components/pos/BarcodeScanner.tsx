@@ -17,22 +17,51 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [activeCamera, setActiveCamera] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
+  const [scannerInitialized, setScannerInitialized] = useState(false);
   const { toast } = useToast();
 
+  // Reset scanner state when dialog is opened or closed
   useEffect(() => {
     if (isOpen) {
-      listCameras();
+      setErrorMessage(null);
+      setLastScannedCode(null);
+      setScannerInitialized(false);
+      
+      // Request camera permissions explicitly when dialog opens
+      requestCameraPermission();
+    } else {
+      // Stop scanner when dialog closes
+      stopScanner();
     }
+    
     return () => {
-      Quagga.stop();
+      stopScanner();
     };
   }, [isOpen]);
 
+  // Initialize scanner when active camera is set
   useEffect(() => {
-    if (activeCamera && scannerRef.current) {
+    if (isOpen && activeCamera && scannerRef.current && !scannerInitialized) {
       initQuagga();
     }
-  }, [activeCamera]);
+  }, [activeCamera, isOpen, scannerInitialized]);
+
+  const requestCameraPermission = async () => {
+    try {
+      // Explicitly request camera permissions
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      
+      // Stop the temporary stream immediately after obtaining permissions
+      stream.getTracks().forEach(track => track.stop());
+      
+      // Now list available cameras
+      listCameras();
+    } catch (error) {
+      console.error('Error requesting camera permission:', error);
+      setErrorMessage('Camera permission denied. Please allow camera access and try again.');
+    }
+  };
 
   const listCameras = async () => {
     try {
@@ -41,7 +70,12 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
       setCameras(videoDevices);
       
       if (videoDevices.length > 0) {
-        setActiveCamera(videoDevices[0].deviceId);
+        // Prefer the back camera if available
+        const backCamera = videoDevices.find(device => 
+          device.label.toLowerCase().includes('back') || 
+          device.label.toLowerCase().includes('rear'));
+        
+        setActiveCamera(backCamera?.deviceId || videoDevices[0].deviceId);
       } else {
         setErrorMessage('No cameras detected on your device');
       }
@@ -51,9 +85,22 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
     }
   };
 
+  const stopScanner = () => {
+    try {
+      Quagga.stop();
+      setScannerInitialized(false);
+    } catch (e) {
+      // Ignore errors when stopping (Quagga might not be initialized)
+    }
+  };
+
   const initQuagga = () => {
     if (!scannerRef.current) return;
-
+    
+    stopScanner();
+    
+    setErrorMessage('Initializing camera...');
+    
     Quagga.init(
       {
         inputStream: {
@@ -84,34 +131,85 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
           return;
         }
 
+        setScannerInitialized(true);
+        setErrorMessage(null);
+        
         Quagga.start();
+        
+        Quagga.onProcessed((result) => {
+          const drawingCtx = Quagga.canvas.ctx.overlay;
+          const drawingCanvas = Quagga.canvas.dom.overlay;
+          
+          if (drawingCtx && drawingCanvas) {
+            // Clear the canvas
+            drawingCtx.clearRect(0, 0, parseInt(drawingCanvas.getAttribute("width") || "0"), 
+                                    parseInt(drawingCanvas.getAttribute("height") || "0"));
+              
+            if (result && result.boxes) {
+              result.boxes.filter(function(box) {
+                return box !== result.box;
+              }).forEach(function(box) {
+                Quagga.ImageDebug.drawPath(box, { x: 0, y: 1 }, drawingCtx, { color: 'green', lineWidth: 2 });
+              });
+            }
+              
+            if (result && result.box) {
+              Quagga.ImageDebug.drawPath(result.box, { x: 0, y: 1 }, drawingCtx, { color: '#00F', lineWidth: 2 });
+            }
+              
+            if (result && result.codeResult && result.codeResult.code) {
+              Quagga.ImageDebug.drawPath(result.line, { x: 'x', y: 'y' }, drawingCtx, { color: 'red', lineWidth: 3 });
+            }
+          }
+        });
         
         Quagga.onDetected((result) => {
           const code = result.codeResult.code;
-          if (code) {
-            // Play a beep sound
-            const audio = new Audio('/static/sounds/beep.mp3');
-            audio.play().catch(e => console.log('Error playing sound:', e));
-
-            toast({
-              title: "Barcode detected!",
-              description: `Code: ${code}`,
-            });
-
-            onBarcodeDetected(code);
+          if (!code) return;
+          
+          // Prevent duplicates (only process if this is a new barcode or 3 seconds have passed)
+          if (lastScannedCode === code && Date.now() - lastScanTime < 3000) {
+            return;
           }
+          
+          // Set new last scan time
+          setLastScannedCode(code);
+          setLastScanTime(Date.now());
+          
+          // Play a beep sound
+          const audio = new Audio('/static/sounds/beep.mp3');
+          audio.play().catch(e => console.log('Error playing sound:', e));
+
+          // Notify user
+          toast({
+            title: "Barcode detected!",
+            description: `Code: ${code}`,
+          });
+
+          // Pass the barcode to parent component
+          onBarcodeDetected(code);
         });
       }
     );
   };
 
+  // Track last scan time to prevent duplicate scans
+  const [lastScanTime, setLastScanTime] = useState(0);
+
   const changeCamera = (deviceId: string) => {
-    Quagga.stop();
+    if (activeCamera === deviceId) return;
+    stopScanner();
     setActiveCamera(deviceId);
   };
 
+  const retryScanner = () => {
+    requestCameraPermission();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={() => onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) onClose();
+    }}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
@@ -134,7 +232,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
                     size="sm"
                     onClick={() => changeCamera(camera.deviceId)}
                   >
-                    Camera {index + 1}
+                    {camera.label || `Camera ${index + 1}`}
                   </Button>
                 ))}
               </div>
@@ -144,7 +242,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
           {errorMessage ? (
             <div className="p-8 text-center">
               <div className="text-red-500 mb-4">{errorMessage}</div>
-              <Button onClick={listCameras}>
+              <Button onClick={retryScanner}>
                 <RefreshCcw className="h-4 w-4 mr-2" />
                 Retry
               </Button>
@@ -156,7 +254,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
                 className="w-full overflow-hidden rounded-lg relative"
                 style={{ height: '300px', background: '#333' }}
               >
-                {!activeCamera && (
+                {!scannerInitialized && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Camera className="h-12 w-12 text-gray-400 animate-pulse" />
                   </div>
