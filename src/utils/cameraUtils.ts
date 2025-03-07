@@ -79,7 +79,7 @@ export function playBeepSound() {
   }
 }
 
-// Attaches video stream to an element
+// Attaches video stream to an element with improved visibility and reliability
 export function attachStreamToVideo(stream: MediaStream, element: HTMLVideoElement | null): boolean {
   if (!element || !stream) {
     console.error("Missing video element or stream", { elementExists: !!element, streamExists: !!stream });
@@ -90,42 +90,65 @@ export function attachStreamToVideo(stream: MediaStream, element: HTMLVideoEleme
     // Clean up existing stream if there is one
     if (element.srcObject) {
       const oldStream = element.srcObject as MediaStream;
-      oldStream.getTracks().forEach(track => track.stop());
+      oldStream.getTracks().forEach(track => {
+        try {
+          track.stop();
+        } catch (e) {
+          console.warn("Error stopping track:", e);
+        }
+      });
     }
     
-    // Set new stream
-    element.srcObject = stream;
+    // Reset element state completely
+    element.srcObject = null;
+    
+    // Set critical video properties
     element.muted = true;
     element.playsInline = true;
     element.autoplay = true;
     
-    // Set important style properties explicitly
+    // Force critical style properties
     element.style.display = 'block';
     element.style.width = '100%';
     element.style.height = '100%';
     element.style.objectFit = 'cover';
+    element.style.position = 'absolute';
+    element.style.top = '0';
+    element.style.left = '0';
+    element.style.zIndex = '5'; // Ensure video is above overlays
     
-    // Force play and handle errors
-    const playPromise = element.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(e => {
-        console.error("Error playing video:", e);
-        // Wait a bit and try again
-        setTimeout(() => {
-          element.play().catch(err => {
-            console.error("Error playing video on retry:", err);
-            // Add a click handler to try playing again with user interaction
-            element.setAttribute('data-needs-interaction', 'true');
-            
-            const clickHandler = () => {
-              element.play().catch(err => console.error("Error playing on click:", err));
-              element.removeEventListener('click', clickHandler);
-            };
-            element.addEventListener('click', clickHandler);
-          });
-        }, 500);
-      });
+    // Now set the stream after reset
+    element.srcObject = stream;
+    
+    // Clear any old event listeners
+    const newElement = element.cloneNode(true) as HTMLVideoElement;
+    if (element.parentNode) {
+      element.parentNode.replaceChild(newElement, element);
     }
+    
+    // Aggressive play approach
+    setTimeout(() => {
+      try {
+        if (newElement.paused) {
+          const playPromise = newElement.play();
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              console.log("Video playing successfully");
+            }).catch(err => {
+              console.error("Play error on retry:", err);
+              // Add interaction handler as a last resort
+              newElement.setAttribute('data-needs-interaction', 'true');
+              newElement.addEventListener('click', function clickHandler() {
+                newElement.play().catch(e => console.error("Error on click play:", e));
+                newElement.removeEventListener('click', clickHandler);
+              });
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Error in delayed play:", e);
+      }
+    }, 300);
     
     console.log("Stream attached to video element successfully");
     return true;
@@ -142,7 +165,14 @@ export function resetVideoElement(element: HTMLVideoElement | null): void {
   try {
     // Stop any existing stream
     if (element.srcObject instanceof MediaStream) {
-      element.srcObject.getTracks().forEach(track => track.stop());
+      const stream = element.srcObject as MediaStream;
+      stream.getTracks().forEach(track => {
+        try {
+          track.stop();
+        } catch (e) {
+          console.warn("Error stopping track:", e);
+        }
+      });
     }
     
     // Reset properties
@@ -162,8 +192,12 @@ export function stopStreamTracks(stream: MediaStream | null): void {
   try {
     const tracks = stream.getTracks();
     tracks.forEach(track => {
-      track.stop();
-      console.log(`Track ${track.kind} stopped`);
+      try {
+        track.stop();
+        console.log(`Track ${track.kind} stopped`);
+      } catch (e) {
+        console.warn(`Error stopping ${track.kind} track:`, e);
+      }
     });
     console.log(`All ${tracks.length} tracks stopped successfully`);
   } catch (error) {

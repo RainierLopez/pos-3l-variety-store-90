@@ -124,7 +124,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
                 className="w-full overflow-hidden rounded-lg relative"
                 style={{ height: '300px', background: '#333' }}
               >
-                {/* Direct video fallback element - always rendered but will be hidden when Quagga is active */}
+                {/* Direct video element - key part of the fix */}
                 <video 
                   ref={videoRef}
                   autoPlay
@@ -142,13 +142,15 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
                   }}
                 />
                 
+                {/* Loading state indicator */}
                 {(isLoading || (!scannerInitialized && !videoRef.current?.srcObject)) && (
-                  <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 10 }}>
-                    <Camera className="h-12 w-12 text-gray-400 animate-pulse" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20" style={{ zIndex: 10 }}>
+                    <Camera className="h-12 w-12 text-white animate-pulse" />
                   </div>
                 )}
               </div>
               
+              {/* Error message display */}
               {errorMessage && !manualRetryNeeded && (
                 <div className="absolute top-2 left-0 right-0 mx-auto flex items-center justify-center">
                   <div className="bg-black/70 text-white px-4 py-2 rounded-full text-sm flex items-center space-x-2">
@@ -158,6 +160,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
                 </div>
               )}
               
+              {/* Scanner guides overlay */}
               <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                 <div className="w-full h-full scanner-guides">
                   <style>{`
