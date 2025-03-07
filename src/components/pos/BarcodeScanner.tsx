@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 import { Camera, X, RefreshCcw, Smartphone, ScanLine } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface BarcodeScannerProps {
   isOpen: boolean;
@@ -23,6 +23,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
     changeCamera,
     retryScanner
   } = useBarcodeScanner(isOpen, onBarcodeDetected);
+  
+  const [forceRetry, setForceRetry] = useState(false);
 
   // Log mounting status for debugging
   useEffect(() => {
@@ -35,6 +37,19 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
   useEffect(() => {
     console.log("Scanner initialized status changed:", scannerInitialized);
   }, [scannerInitialized]);
+  
+  // Force a retry after 5 seconds if scanner isn't initialized
+  useEffect(() => {
+    if (isOpen && !scannerInitialized && !forceRetry) {
+      const timer = setTimeout(() => {
+        console.log("Auto-retrying scanner after timeout");
+        setForceRetry(true);
+        retryScanner();
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, scannerInitialized, forceRetry]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -98,11 +113,11 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
-                    display: !scannerInitialized ? 'block' : 'none'
+                    display: 'block'
                   }}
                 />
                 
-                {(isLoading || (!scannerInitialized && !videoRef.current?.srcObject)) && (
+                {(isLoading || !videoRef.current?.srcObject) && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Camera className="h-12 w-12 text-gray-400 animate-pulse" />
                   </div>

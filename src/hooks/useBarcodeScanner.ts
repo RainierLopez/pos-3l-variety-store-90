@@ -2,7 +2,15 @@
 import { useState, useEffect, useRef } from 'react';
 import Quagga from '@ericblade/quagga2';
 import { useToast } from "@/hooks/use-toast";
-import { requestCameraPermission, getAvailableCameras, selectBestCamera, playBeepSound, attachStreamToVideo } from '@/utils/cameraUtils';
+import { 
+  requestCameraPermission, 
+  getAvailableCameras, 
+  selectBestCamera, 
+  playBeepSound, 
+  attachStreamToVideo,
+  resetVideoElement,
+  stopStreamTracks
+} from '@/utils/cameraUtils';
 
 export interface UseBarcodeScanner {
   scannerRef: React.RefObject<HTMLDivElement>;
@@ -77,7 +85,7 @@ export function useBarcodeScanner(
     try {
       console.log("Initializing scanner and requesting camera permissions");
       
-      // First try to get any camera access - this is crucial for permission
+      // First get any camera access - this is crucial for permission
       const mediaStream = await requestCameraPermission();
       if (!mediaStream) {
         setErrorMessage('Camera permission denied. Please allow camera access and try again.');
@@ -88,7 +96,12 @@ export function useBarcodeScanner(
       // Set initial stream and attach to video
       setStream(mediaStream);
       if (videoRef.current) {
-        attachStreamToVideo(mediaStream, videoRef.current);
+        // Reset video element first
+        resetVideoElement(videoRef.current);
+        const success = attachStreamToVideo(mediaStream, videoRef.current);
+        if (!success) {
+          console.error("Failed to attach stream to video element");
+        }
       }
       
       // Then get available cameras
@@ -116,14 +129,16 @@ export function useBarcodeScanner(
       Quagga.stop();
       setScannerInitialized(false);
       
-      // Clean up the stream
+      // Stop and clean up the stream
       if (stream) {
         console.log("Stopping camera stream");
-        stream.getTracks().forEach(track => {
-          console.log(`Stopping track: ${track.kind}`);
-          track.stop();
-        });
+        stopStreamTracks(stream);
         setStream(null);
+      }
+      
+      // Reset video element
+      if (videoRef.current) {
+        resetVideoElement(videoRef.current);
       }
     } catch (e) {
       console.error("Error stopping scanner:", e);
@@ -141,43 +156,48 @@ export function useBarcodeScanner(
     
     console.log('Initializing Quagga with camera ID:', activeCamera);
     
-    Quagga.init(
-      {
-        inputStream: {
-          name: 'Live',
-          type: 'LiveStream',
-          target: scannerRef.current,
-          constraints: {
-            width: { min: 640, ideal: 1280, max: 1920 },
-            height: { min: 480, ideal: 720, max: 1080 },
-            facingMode: 'environment',
-            deviceId: activeCamera
-          },
-          area: {
-            top: "25%",
-            right: "10%",
-            left: "10%",
-            bottom: "25%",
-          },
-          willReadFrequently: true
+    const quaggaConfig = {
+      inputStream: {
+        name: 'Live',
+        type: 'LiveStream',
+        target: scannerRef.current,
+        constraints: {
+          width: { min: 640, ideal: 1280, max: 1920 },
+          height: { min: 480, ideal: 720, max: 1080 },
+          facingMode: 'environment',
+          deviceId: activeCamera,
+          aspectRatio: { min: 1, max: 2 }
         },
-        locator: {
-          patchSize: 'medium',
-          halfSample: true,
+        area: {
+          top: "25%",
+          right: "10%",
+          left: "10%",
+          bottom: "25%",
         },
-        numOfWorkers: navigator.hardwareConcurrency ? Math.max(2, Math.floor(navigator.hardwareConcurrency / 2)) : 2,
-        frequency: 10,
-        decoder: {
-          readers: ['ean_reader', 'ean_8_reader', 'code_128_reader', 'code_39_reader', 'code_93_reader'],
-          debug: {
-            drawBoundingBox: true,
-            showFrequency: true,
-            drawScanline: true,
-            showPattern: true
-          }
-        },
-        locate: true,
+        willReadFrequently: true
       },
+      locator: {
+        patchSize: 'medium',
+        halfSample: true,
+      },
+      numOfWorkers: navigator.hardwareConcurrency ? Math.max(2, Math.floor(navigator.hardwareConcurrency / 2)) : 2,
+      frequency: 10,
+      decoder: {
+        readers: ['ean_reader', 'ean_8_reader', 'code_128_reader', 'code_39_reader', 'code_93_reader'],
+        debug: {
+          drawBoundingBox: true,
+          showFrequency: true,
+          drawScanline: true,
+          showPattern: true
+        }
+      },
+      locate: true,
+    };
+    
+    console.log("Quagga config:", JSON.stringify(quaggaConfig, null, 2));
+    
+    Quagga.init(
+      quaggaConfig,
       (err) => {
         if (err) {
           console.error('Error initializing Quagga:', err);
