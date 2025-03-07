@@ -2,10 +2,11 @@
 import { useState, useEffect, useRef } from 'react';
 import Quagga from '@ericblade/quagga2';
 import { useToast } from "@/hooks/use-toast";
-import { requestCameraPermission, getAvailableCameras, selectBestCamera, playBeepSound } from '@/utils/cameraUtils';
+import { requestCameraPermission, getAvailableCameras, selectBestCamera, playBeepSound, attachStreamToVideo } from '@/utils/cameraUtils';
 
 export interface UseBarcodeScanner {
   scannerRef: React.RefObject<HTMLDivElement>;
+  videoRef: React.RefObject<HTMLVideoElement>;
   cameras: MediaDeviceInfo[];
   activeCamera: string | null;
   errorMessage: string | null;
@@ -24,6 +25,7 @@ export function useBarcodeScanner(
   onBarcodeDetected: (barcode: string) => void
 ): UseBarcodeScanner {
   const scannerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [activeCamera, setActiveCamera] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -37,11 +39,13 @@ export function useBarcodeScanner(
   // Initialize camera when component mounts
   useEffect(() => {
     if (isOpen) {
+      console.log("Scanner dialog opened, initializing camera");
       setErrorMessage(null);
       setLastScannedCode(null);
       setScannerInitialized(false);
       initScanner();
     } else {
+      console.log("Scanner dialog closed, stopping scanner");
       stopScanner();
     }
     
@@ -53,14 +57,27 @@ export function useBarcodeScanner(
   // Set up scanner when active camera changes
   useEffect(() => {
     if (isOpen && activeCamera && scannerRef.current && !scannerInitialized) {
+      console.log("Active camera set, setting up Quagga");
       setupQuagga();
     }
   }, [activeCamera, isOpen, scannerInitialized]);
 
+  // Ensure video element is properly set up when stream changes
+  useEffect(() => {
+    if (stream && videoRef.current) {
+      console.log("Stream changed, updating video element");
+      attachStreamToVideo(stream, videoRef.current);
+    }
+  }, [stream]);
+
   const initScanner = async () => {
     setIsLoading(true);
+    setErrorMessage("Initializing camera...");
+    
     try {
-      // First ask for camera permission
+      console.log("Initializing scanner and requesting camera permissions");
+      
+      // First try to get any camera access - this is crucial for permission
       const mediaStream = await requestCameraPermission();
       if (!mediaStream) {
         setErrorMessage('Camera permission denied. Please allow camera access and try again.');
@@ -68,7 +85,11 @@ export function useBarcodeScanner(
         return;
       }
       
+      // Set initial stream and attach to video
       setStream(mediaStream);
+      if (videoRef.current) {
+        attachStreamToVideo(mediaStream, videoRef.current);
+      }
       
       // Then get available cameras
       const videoDevices = await getAvailableCameras();
@@ -91,12 +112,17 @@ export function useBarcodeScanner(
 
   const stopScanner = () => {
     try {
+      console.log("Stopping Quagga scanner");
       Quagga.stop();
       setScannerInitialized(false);
       
       // Clean up the stream
       if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+        console.log("Stopping camera stream");
+        stream.getTracks().forEach(track => {
+          console.log(`Stopping track: ${track.kind}`);
+          track.stop();
+        });
         setStream(null);
       }
     } catch (e) {
@@ -105,7 +131,10 @@ export function useBarcodeScanner(
   };
 
   const setupQuagga = () => {
-    if (!scannerRef.current || !activeCamera) return;
+    if (!scannerRef.current || !activeCamera) {
+      console.error("Cannot setup Quagga: missing scanner ref or active camera");
+      return;
+    }
     
     stopScanner();
     setErrorMessage('Initializing camera...');
@@ -122,8 +151,7 @@ export function useBarcodeScanner(
             width: { min: 640, ideal: 1280, max: 1920 },
             height: { min: 480, ideal: 720, max: 1080 },
             facingMode: 'environment',
-            deviceId: activeCamera,
-            aspectRatio: { min: 1, max: 2 }
+            deviceId: activeCamera
           },
           area: {
             top: "25%",
@@ -154,6 +182,12 @@ export function useBarcodeScanner(
         if (err) {
           console.error('Error initializing Quagga:', err);
           setErrorMessage(`Failed to initialize barcode scanner: ${err.message || 'Unknown error'}`);
+          
+          // Fallback: If Quagga fails, at least show the direct camera feed
+          if (stream && videoRef.current && videoRef.current.srcObject !== stream) {
+            console.log("Quagga failed, falling back to direct camera feed");
+            attachStreamToVideo(stream, videoRef.current);
+          }
           return;
         }
 
@@ -229,17 +263,20 @@ export function useBarcodeScanner(
 
   const changeCamera = (deviceId: string) => {
     if (activeCamera === deviceId) return;
+    console.log(`Changing camera to: ${deviceId}`);
     stopScanner();
     setActiveCamera(deviceId);
   };
 
   const retryScanner = async () => {
+    console.log("Retrying scanner initialization");
     stopScanner();
     await initScanner();
   };
 
   return {
     scannerRef,
+    videoRef,
     cameras,
     activeCamera,
     errorMessage,

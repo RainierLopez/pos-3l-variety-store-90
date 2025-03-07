@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
 import { Camera, X, RefreshCcw, Smartphone, ScanLine } from "lucide-react";
+import { useEffect } from "react";
 
 interface BarcodeScannerProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface BarcodeScannerProps {
 export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeScannerProps) => {
   const {
     scannerRef,
+    videoRef,
     cameras,
     activeCamera,
     errorMessage,
@@ -21,6 +23,18 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
     changeCamera,
     retryScanner
   } = useBarcodeScanner(isOpen, onBarcodeDetected);
+
+  // Log mounting status for debugging
+  useEffect(() => {
+    console.log("BarcodeScanner component mounted, isOpen:", isOpen);
+    return () => {
+      console.log("BarcodeScanner component unmounted");
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log("Scanner initialized status changed:", scannerInitialized);
+  }, [scannerInitialized]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -74,7 +88,21 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
                 className="w-full overflow-hidden rounded-lg relative"
                 style={{ height: '300px', background: '#333' }}
               >
-                {(isLoading || !scannerInitialized) && (
+                {/* Fallback direct video element */}
+                <video 
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: !scannerInitialized ? 'block' : 'none'
+                  }}
+                />
+                
+                {(isLoading || (!scannerInitialized && !videoRef.current?.srcObject)) && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Camera className="h-12 w-12 text-gray-400 animate-pulse" />
                   </div>
