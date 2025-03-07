@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import Quagga from '@ericblade/quagga2';
 import { useToast } from "@/hooks/use-toast";
@@ -11,11 +12,14 @@ import {
   stopStreamTracks
 } from '@/utils/cameraUtils';
 
-// Define the Quagga configuration type directly without namespace reference
-interface QuaggaJSReaderConfig {
+// Use the correct types directly from Quagga
+type QuaggaJSReaderConfig = {
   format: string;
-  config: Record<string, unknown>;
-}
+  config: {
+    supplements?: string[];
+    [key: string]: any;
+  };
+};
 
 interface QuaggaJSConfigObject {
   inputStream: {
@@ -228,11 +232,11 @@ export function useBarcodeScanner(
       frequency: 10,
       decoder: {
         readers: [
-          { format: "ean_reader", config: {} },
-          { format: "ean_8_reader", config: {} },
-          { format: "code_128_reader", config: {} },
-          { format: "code_39_reader", config: {} },
-          { format: "code_93_reader", config: {} }
+          { format: "ean_reader", config: { supplements: [] } },
+          { format: "ean_8_reader", config: { supplements: [] } },
+          { format: "code_128_reader", config: { supplements: [] } },
+          { format: "code_39_reader", config: { supplements: [] } },
+          { format: "code_93_reader", config: { supplements: [] } }
         ],
         debug: {
           drawBoundingBox: true,
