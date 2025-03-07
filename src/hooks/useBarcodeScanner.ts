@@ -12,6 +12,17 @@ import {
   stopStreamTracks
 } from '@/utils/cameraUtils';
 
+// Define additional types needed for Quagga
+interface QuaggaJSReaderConfig {
+  format?: string;
+  config?: any;
+}
+
+interface QuaggaJSCodeReader {
+  format?: string;
+  config?: any;
+}
+
 // Define types for Quagga since the library's typings aren't fully defined
 interface QuaggaJSConfigObject {
   inputStream: {
@@ -42,7 +53,7 @@ interface QuaggaJSConfigObject {
   numOfWorkers?: number;
   frequency?: number;
   decoder?: {
-    readers?: string[];
+    readers?: (QuaggaJSReaderConfig | QuaggaJSCodeReader)[];
     debug?: {
       drawBoundingBox?: boolean;
       showFrequency?: boolean;
@@ -225,7 +236,13 @@ export function useBarcodeScanner(
       numOfWorkers: navigator.hardwareConcurrency ? Math.max(2, Math.floor(navigator.hardwareConcurrency / 2)) : 2,
       frequency: 10,
       decoder: {
-        readers: ['ean_reader', 'ean_8_reader', 'code_128_reader', 'code_39_reader', 'code_93_reader'],
+        readers: [
+          { format: "ean_reader" },
+          { format: "ean_8_reader" },
+          { format: "code_128_reader" },
+          { format: "code_39_reader" },
+          { format: "code_93_reader" }
+        ],
         debug: {
           drawBoundingBox: true,
           showFrequency: true,
