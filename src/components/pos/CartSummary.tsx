@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Printer, ShoppingBag, CreditCard, Wallet, Banknote, Barcode, Database, Camera } from "lucide-react";
@@ -120,16 +119,15 @@ export const CartSummary = ({
         </div>
       </div>
 
-      {/* Embedded Barcode Scanner */}
-      {showBarcodeScanner && (
-        <div className="mb-4 rounded-lg overflow-hidden shadow-lg">
-          <BarcodeScanner 
-            isOpen={showBarcodeScanner}
-            onClose={() => setShowBarcodeScanner(false)}
-            onBarcodeDetected={onBarcodeDetected}
-          />
-        </div>
-      )}
+      {/* Barcode Scanner Dialog */}
+      <BarcodeScanner 
+        isOpen={showBarcodeScanner}
+        onClose={() => setShowBarcodeScanner(false)}
+        onBarcodeDetected={(barcode) => {
+          setShowBarcodeScanner(false);
+          onBarcodeDetected(barcode);
+        }}
+      />
 
       <div className="max-h-[400px] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
         {cart.map((item) => (
