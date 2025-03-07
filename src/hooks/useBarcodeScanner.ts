@@ -156,10 +156,11 @@ export function useBarcodeScanner(
     
     console.log('Initializing Quagga with camera ID:', activeCamera);
     
-    const quaggaConfig = {
+    // Fix the type issue by using the correct InputStreamType from Quagga
+    const quaggaConfig: Quagga.QuaggaJSConfigObject = {
       inputStream: {
         name: 'Live',
-        type: 'LiveStream',
+        type: 'LiveStream' as Quagga.InputStreamType,
         target: scannerRef.current,
         constraints: {
           width: { min: 640, ideal: 1280, max: 1920 },
