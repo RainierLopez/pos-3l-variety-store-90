@@ -8,7 +8,11 @@ export async function requestCameraPermission(): Promise<MediaStream | null> {
     // First try with environment-facing camera (usually back camera on mobile)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
+        video: { 
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
         audio: false
       });
       console.log("Camera permission granted with environment facing camera");
@@ -17,7 +21,10 @@ export async function requestCameraPermission(): Promise<MediaStream | null> {
       console.log("Could not get environment camera, trying any camera", e);
       // If that fails, try with any camera
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
         audio: false
       });
       console.log("Camera permission granted with any available camera");
@@ -36,8 +43,10 @@ export async function requestCameraPermission(): Promise<MediaStream | null> {
 
 export async function getAvailableCameras(): Promise<MediaDeviceInfo[]> {
   try {
-    // Ensure we have permission first
+    // Request permission first
     await navigator.mediaDevices.getUserMedia({ video: true });
+    
+    // Then enumerate devices
     const devices = await navigator.mediaDevices.enumerateDevices();
     const videoDevices = devices.filter(device => device.kind === 'videoinput');
     console.log("Available cameras:", videoDevices);
@@ -84,22 +93,38 @@ export function attachStreamToVideo(stream: MediaStream, element: HTMLVideoEleme
   }
   
   try {
-    // Ensure we're working with a valid video element
+    // Clean up existing stream if there is one
+    if (element.srcObject) {
+      const oldStream = element.srcObject as MediaStream;
+      oldStream.getTracks().forEach(track => track.stop());
+    }
+    
+    // Set new stream
     element.srcObject = stream;
-    element.muted = true; // Ensure video is muted
-    element.playsInline = true; // Important for iOS
+    element.muted = true;
+    element.playsInline = true;
+    element.autoplay = true;
     element.style.display = 'block';
     element.style.width = '100%';
     element.style.height = '100%';
     element.style.objectFit = 'cover';
     
     // Force play and handle errors
-    element.play().catch(e => {
-      console.error("Error playing video:", e);
-      // On some browsers, play needs to be triggered by user gesture
-      // In this case, we'll add a hint to click the video
-      element.setAttribute('data-needs-interaction', 'true');
-    });
+    const playPromise = element.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(e => {
+        console.error("Error playing video:", e);
+        // Try again with a user interaction
+        element.setAttribute('data-needs-interaction', 'true');
+        
+        // Add a click handler to try playing again
+        const clickHandler = () => {
+          element.play().catch(err => console.error("Error playing on click:", err));
+          element.removeEventListener('click', clickHandler);
+        };
+        element.addEventListener('click', clickHandler);
+      });
+    }
     
     console.log("Stream attached to video element successfully");
     return true;
@@ -121,7 +146,7 @@ export function resetVideoElement(element: HTMLVideoElement | null): void {
     
     // Reset properties
     element.srcObject = null;
-    element.style.display = 'none';
+    element.removeAttribute('data-needs-interaction');
     console.log("Video element reset successfully");
   } catch (error) {
     console.error("Error resetting video element:", error);

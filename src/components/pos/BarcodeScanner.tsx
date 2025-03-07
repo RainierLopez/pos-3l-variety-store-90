@@ -2,7 +2,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useBarcodeScanner } from "@/hooks/useBarcodeScanner";
-import { Camera, X, RefreshCcw, Smartphone, ScanLine } from "lucide-react";
+import { Camera, X, RefreshCcw, Smartphone, ScanLine, AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface BarcodeScannerProps {
@@ -24,7 +24,8 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
     retryScanner
   } = useBarcodeScanner(isOpen, onBarcodeDetected);
   
-  const [forceRetry, setForceRetry] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [manualRetryNeeded, setManualRetryNeeded] = useState(false);
 
   // Log mounting status for debugging
   useEffect(() => {
@@ -38,18 +39,32 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
     console.log("Scanner initialized status changed:", scannerInitialized);
   }, [scannerInitialized]);
   
-  // Force a retry after 5 seconds if scanner isn't initialized
+  // Auto-retry up to 3 times if scanner isn't initialized
   useEffect(() => {
-    if (isOpen && !scannerInitialized && !forceRetry) {
+    if (isOpen && !scannerInitialized && !manualRetryNeeded && retryCount < 3) {
       const timer = setTimeout(() => {
-        console.log("Auto-retrying scanner after timeout");
-        setForceRetry(true);
+        console.log(`Auto-retrying scanner (attempt ${retryCount + 1} of 3)`);
+        setRetryCount(prev => prev + 1);
         retryScanner();
-      }, 5000);
+      }, 3000);
       
       return () => clearTimeout(timer);
+    } else if (retryCount >= 3 && !scannerInitialized) {
+      setManualRetryNeeded(true);
     }
-  }, [isOpen, scannerInitialized, forceRetry]);
+  }, [isOpen, scannerInitialized, retryCount, manualRetryNeeded]);
+
+  const handleManualRetry = () => {
+    setManualRetryNeeded(false);
+    setRetryCount(0);
+    retryScanner();
+  };
+
+  const videoClickHandler = () => {
+    if (videoRef.current && videoRef.current.getAttribute('data-needs-interaction') === 'true') {
+      videoRef.current.play().catch(err => console.error("Error playing video on click:", err));
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -88,12 +103,17 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
             </div>
           )}
 
-          {errorMessage ? (
-            <div className="p-8 text-center">
-              <div className="text-red-500 mb-4">{errorMessage}</div>
-              <Button onClick={retryScanner}>
+          {errorMessage && manualRetryNeeded ? (
+            <div className="p-8 flex flex-col items-center justify-center space-y-4 bg-red-50 border border-red-200 rounded-lg">
+              <AlertTriangle className="h-12 w-12 text-red-500" />
+              <div className="text-red-500 font-medium text-center">{errorMessage}</div>
+              <p className="text-sm text-center text-gray-600 max-w-md">
+                We couldn't initialize your camera after multiple attempts. This could be due to permission issues
+                or your browser's security settings.
+              </p>
+              <Button onClick={handleManualRetry} variant="destructive">
                 <RefreshCcw className="h-4 w-4 mr-2" />
-                Retry
+                Retry Camera Access
               </Button>
             </div>
           ) : (
@@ -109,6 +129,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
                   autoPlay
                   playsInline
                   muted
+                  onClick={videoClickHandler}
                   style={{
                     width: '100%',
                     height: '100%',
@@ -117,12 +138,21 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
                   }}
                 />
                 
-                {(isLoading || !videoRef.current?.srcObject) && (
+                {(isLoading || (!videoRef.current?.srcObject && !errorMessage)) && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Camera className="h-12 w-12 text-gray-400 animate-pulse" />
                   </div>
                 )}
               </div>
+              
+              {errorMessage && !manualRetryNeeded && (
+                <div className="absolute top-2 left-0 right-0 mx-auto flex items-center justify-center">
+                  <div className="bg-black/70 text-white px-4 py-2 rounded-full text-sm flex items-center space-x-2">
+                    <AlertTriangle className="h-4 w-4 text-yellow-400" />
+                    <span>{errorMessage}</span>
+                  </div>
+                </div>
+              )}
               
               <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                 <div className="w-full h-full scanner-guides">
@@ -183,6 +213,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
               onClick={retryScanner}
               variant="outline"
               size="sm"
+              className="flex items-center gap-1"
             >
               <RefreshCcw className="h-4 w-4 mr-1" />
               Reset Camera
