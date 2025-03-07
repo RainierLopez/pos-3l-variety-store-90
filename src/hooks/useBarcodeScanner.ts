@@ -12,57 +12,8 @@ import {
   stopStreamTracks
 } from '@/utils/cameraUtils';
 
-// Define additional types needed for Quagga
-interface QuaggaJSReaderConfig {
-  format?: string;
-  config?: any;
-}
-
-interface QuaggaJSCodeReader {
-  format?: string;
-  config?: any;
-}
-
-// Define types for Quagga since the library's typings aren't fully defined
-interface QuaggaJSConfigObject {
-  inputStream: {
-    name?: string;
-    type: 'ImageStream' | 'VideoStream' | 'LiveStream';
-    target?: HTMLElement | null;
-    constraints?: MediaTrackConstraints & {
-      width?: { min?: number; ideal?: number; max?: number };
-      height?: { min?: number; ideal?: number; max?: number };
-      aspectRatio?: { min?: number; max?: number };
-      facingMode?: string;
-      deviceId?: string;
-    };
-    area?: {
-      top?: string;
-      right?: string;
-      left?: string;
-      bottom?: string;
-    };
-    singleChannel?: boolean;
-    size?: number;
-    willReadFrequently?: boolean;
-  };
-  locator?: {
-    patchSize?: 'x-small' | 'small' | 'medium' | 'large' | 'x-large';
-    halfSample?: boolean;
-  };
-  numOfWorkers?: number;
-  frequency?: number;
-  decoder?: {
-    readers?: (QuaggaJSReaderConfig | QuaggaJSCodeReader)[];
-    debug?: {
-      drawBoundingBox?: boolean;
-      showFrequency?: boolean;
-      drawScanline?: boolean;
-      showPattern?: boolean;
-    };
-  };
-  locate?: boolean;
-}
+// Import the types from the library directly
+type QuaggaJSConfigObject = Quagga.QuaggaJSConfigObject;
 
 export interface UseBarcodeScanner {
   scannerRef: React.RefObject<HTMLDivElement>;
@@ -208,8 +159,8 @@ export function useBarcodeScanner(
     
     console.log('Initializing Quagga with camera ID:', activeCamera);
     
-    // Define the Quagga configuration with our custom type
-    const quaggaConfig: QuaggaJSConfigObject = {
+    // Create the configuration object
+    const config: QuaggaJSConfigObject = {
       inputStream: {
         name: 'Live',
         type: 'LiveStream',
@@ -237,11 +188,11 @@ export function useBarcodeScanner(
       frequency: 10,
       decoder: {
         readers: [
-          { format: "ean_reader" },
-          { format: "ean_8_reader" },
-          { format: "code_128_reader" },
-          { format: "code_39_reader" },
-          { format: "code_93_reader" }
+          { format: "ean_reader", config: {} },
+          { format: "ean_8_reader", config: {} },
+          { format: "code_128_reader", config: {} },
+          { format: "code_39_reader", config: {} },
+          { format: "code_93_reader", config: {} }
         ],
         debug: {
           drawBoundingBox: true,
@@ -253,10 +204,10 @@ export function useBarcodeScanner(
       locate: true,
     };
     
-    console.log("Quagga config:", JSON.stringify(quaggaConfig, null, 2));
+    console.log("Quagga config:", JSON.stringify(config, null, 2));
     
     Quagga.init(
-      quaggaConfig,
+      config,
       (err) => {
         if (err) {
           console.error('Error initializing Quagga:', err);
