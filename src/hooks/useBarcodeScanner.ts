@@ -12,52 +12,8 @@ import {
   stopStreamTracks
 } from '@/utils/cameraUtils';
 
-// Instead of creating our own types, let's use the ones directly from Quagga
-// This avoids type mismatches between our definitions and the library
-type QuaggaJSReaderConfig = {
-  format: string;
-  config: {
-    supplements: string[]; // This needs to be required, not optional
-  };
-};
-
-interface QuaggaJSConfigObject {
-  inputStream: {
-    name?: string;
-    type: 'LiveStream';
-    target: HTMLElement | null;
-    constraints?: MediaTrackConstraints & {
-      width?: { min?: number; ideal?: number; max?: number };
-      height?: { min?: number; ideal?: number; max?: number };
-      aspectRatio?: { min?: number; max?: number };
-      facingMode?: string;
-      deviceId?: string;
-    };
-    area?: {
-      top?: string;
-      right?: string;
-      left?: string;
-      bottom?: string;
-    };
-    willReadFrequently?: boolean;
-  };
-  locator?: {
-    patchSize?: 'medium';
-    halfSample?: boolean;
-  };
-  numOfWorkers?: number;
-  frequency?: number;
-  decoder?: {
-    readers: QuaggaJSReaderConfig[];
-    debug?: {
-      drawBoundingBox?: boolean;
-      showFrequency?: boolean;
-      drawScanline?: boolean;
-      showPattern?: boolean;
-    };
-  };
-  locate?: boolean;
-}
+// Skip type definitions and use type assertions where needed
+// This avoids TypeScript errors with the Quagga library
 
 export interface UseBarcodeScanner {
   scannerRef: React.RefObject<HTMLDivElement>;
@@ -145,10 +101,7 @@ export function useBarcodeScanner(
       if (videoRef.current) {
         // Reset video element first
         resetVideoElement(videoRef.current);
-        const success = attachStreamToVideo(mediaStream, videoRef.current);
-        if (!success) {
-          console.error("Failed to attach stream to video element");
-        }
+        attachStreamToVideo(mediaStream, videoRef.current);
       }
       
       // Then get available cameras
@@ -203,17 +156,17 @@ export function useBarcodeScanner(
     
     console.log('Initializing Quagga with camera ID:', activeCamera);
     
-    // Create the configuration object with our defined type
-    const config: QuaggaJSConfigObject = {
+    // Create a simplified configuration object
+    const config = {
       inputStream: {
         name: 'Live',
         type: 'LiveStream',
         target: scannerRef.current,
         constraints: {
-          width: { min: 640, ideal: 1280, max: 1920 },
-          height: { min: 480, ideal: 720, max: 1080 },
-          facingMode: 'environment',
           deviceId: activeCamera,
+          facingMode: 'environment',
+          width: { min: 450, ideal: 1280, max: 1920 },
+          height: { min: 300, ideal: 720, max: 1080 },
           aspectRatio: { min: 1, max: 2 }
         },
         area: {
@@ -222,13 +175,12 @@ export function useBarcodeScanner(
           left: "10%",
           bottom: "25%",
         },
-        willReadFrequently: true
       },
       locator: {
         patchSize: 'medium',
         halfSample: true,
       },
-      numOfWorkers: navigator.hardwareConcurrency ? Math.max(2, Math.floor(navigator.hardwareConcurrency / 2)) : 2,
+      numOfWorkers: 2,
       frequency: 10,
       decoder: {
         readers: [
@@ -248,92 +200,87 @@ export function useBarcodeScanner(
       locate: true,
     };
     
-    console.log("Quagga config:", JSON.stringify(config, null, 2));
-    
-    // Here is where we pass the config to Quagga.init
-    Quagga.init(
-      config as any, // Use type assertion as a temporary fix
-      (err) => {
-        if (err) {
-          console.error('Error initializing Quagga:', err);
-          setErrorMessage(`Failed to initialize barcode scanner: ${err.message || 'Unknown error'}`);
-          
-          // Fallback: If Quagga fails, at least show the direct camera feed
-          if (stream && videoRef.current && videoRef.current.srcObject !== stream) {
-            console.log("Quagga failed, falling back to direct camera feed");
-            attachStreamToVideo(stream, videoRef.current);
+    // Use type assertion to bypass TypeScript errors
+    Quagga.init(config as any, (err) => {
+      if (err) {
+        console.error('Error initializing Quagga:', err);
+        setErrorMessage(`Failed to initialize barcode scanner: ${err.message || 'Unknown error'}`);
+        
+        // Fallback: If Quagga fails, at least show the direct camera feed
+        if (stream && videoRef.current) {
+          console.log("Quagga failed, showing direct camera feed");
+          attachStreamToVideo(stream, videoRef.current);
+        }
+        return;
+      }
+
+      console.log('Quagga initialized successfully');
+      setScannerInitialized(true);
+      setErrorMessage(null);
+      
+      Quagga.start();
+      
+      Quagga.onProcessed((result) => {
+        const drawingCtx = Quagga.canvas.ctx.overlay;
+        const drawingCanvas = Quagga.canvas.dom.overlay;
+        
+        if (drawingCtx && drawingCanvas) {
+          drawingCtx.clearRect(
+            0, 0, 
+            parseInt(drawingCanvas.getAttribute("width") || "0"), 
+            parseInt(drawingCanvas.getAttribute("height") || "0")
+          );
+            
+          if (result && result.boxes) {
+            result.boxes
+              .filter(box => box !== result.box)
+              .forEach(box => {
+                Quagga.ImageDebug.drawPath(box, { x: 0, y: 1 }, drawingCtx, { color: 'green', lineWidth: 2 });
+              });
           }
+            
+          if (result && result.box) {
+            Quagga.ImageDebug.drawPath(result.box, { x: 0, y: 1 }, drawingCtx, { color: '#00F', lineWidth: 2 });
+          }
+            
+          if (result && result.codeResult && result.codeResult.code) {
+            Quagga.ImageDebug.drawPath(result.line, { x: 'x', y: 'y' }, drawingCtx, { color: 'red', lineWidth: 3 });
+          }
+        }
+      });
+      
+      Quagga.onDetected((result) => {
+        const code = result.codeResult.code;
+        if (!code) return;
+        
+        // Prevent duplicate scans within 3 seconds
+        if (lastScannedCode === code && Date.now() - lastScanTime < 3000) {
           return;
         }
+        
+        console.log('Barcode detected:', code);
+        
+        setLastScannedCode(code);
+        setLastScanTime(Date.now());
+        
+        playBeepSound();
 
-        console.log('Quagga initialized successfully');
-        setScannerInitialized(true);
-        setErrorMessage(null);
-        
-        Quagga.start();
-        
-        Quagga.onProcessed((result) => {
-          const drawingCtx = Quagga.canvas.ctx.overlay;
-          const drawingCanvas = Quagga.canvas.dom.overlay;
-          
-          if (drawingCtx && drawingCanvas) {
-            drawingCtx.clearRect(
-              0, 0, 
-              parseInt(drawingCanvas.getAttribute("width") || "0"), 
-              parseInt(drawingCanvas.getAttribute("height") || "0")
-            );
-              
-            if (result && result.boxes) {
-              result.boxes
-                .filter(box => box !== result.box)
-                .forEach(box => {
-                  Quagga.ImageDebug.drawPath(box, { x: 0, y: 1 }, drawingCtx, { color: 'green', lineWidth: 2 });
-                });
-            }
-              
-            if (result && result.box) {
-              Quagga.ImageDebug.drawPath(result.box, { x: 0, y: 1 }, drawingCtx, { color: '#00F', lineWidth: 2 });
-            }
-              
-            if (result && result.codeResult && result.codeResult.code) {
-              Quagga.ImageDebug.drawPath(result.line, { x: 'x', y: 'y' }, drawingCtx, { color: 'red', lineWidth: 3 });
-            }
-          }
+        toast({
+          title: "Barcode detected!",
+          description: `Code: ${code}`,
         });
+
+        onBarcodeDetected(code);
         
-        Quagga.onDetected((result) => {
-          const code = result.codeResult.code;
-          if (!code) return;
-          
-          // Prevent duplicate scans within 3 seconds
-          if (lastScannedCode === code && Date.now() - lastScanTime < 3000) {
-            return;
+        // Pause scanner briefly to prevent multiple scans
+        stopScanner();
+        setTimeout(() => {
+          if (isOpen && scannerRef.current && activeCamera) {
+            setupQuagga();
           }
-          
-          console.log('Barcode detected:', code);
-          
-          setLastScannedCode(code);
-          setLastScanTime(Date.now());
-          
-          playBeepSound();
-
-          toast({
-            title: "Barcode detected!",
-            description: `Code: ${code}`,
-          });
-
-          onBarcodeDetected(code);
-          
-          // Pause scanner briefly to prevent multiple scans
-          stopScanner();
-          setTimeout(() => {
-            if (isOpen && scannerRef.current && activeCamera) {
-              setupQuagga();
-            }
-          }, 1500);
-        });
-      }
-    );
+        }, 1500);
+      });
+    });
   };
 
   const changeCamera = (deviceId: string) => {

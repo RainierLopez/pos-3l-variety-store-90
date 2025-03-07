@@ -21,10 +21,7 @@ export async function requestCameraPermission(): Promise<MediaStream | null> {
       console.log("Could not get environment camera, trying any camera", e);
       // If that fails, try with any camera
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
+        video: true,
         audio: false
       });
       console.log("Camera permission granted with any available camera");
@@ -43,10 +40,7 @@ export async function requestCameraPermission(): Promise<MediaStream | null> {
 
 export async function getAvailableCameras(): Promise<MediaDeviceInfo[]> {
   try {
-    // Request permission first
-    await navigator.mediaDevices.getUserMedia({ video: true });
-    
-    // Then enumerate devices
+    // Get devices only after permission has been granted
     const devices = await navigator.mediaDevices.enumerateDevices();
     const videoDevices = devices.filter(device => device.kind === 'videoinput');
     console.log("Available cameras:", videoDevices);
@@ -104,6 +98,8 @@ export function attachStreamToVideo(stream: MediaStream, element: HTMLVideoEleme
     element.muted = true;
     element.playsInline = true;
     element.autoplay = true;
+    
+    // Set important style properties
     element.style.display = 'block';
     element.style.width = '100%';
     element.style.height = '100%';
@@ -114,15 +110,20 @@ export function attachStreamToVideo(stream: MediaStream, element: HTMLVideoEleme
     if (playPromise !== undefined) {
       playPromise.catch(e => {
         console.error("Error playing video:", e);
-        // Try again with a user interaction
-        element.setAttribute('data-needs-interaction', 'true');
-        
-        // Add a click handler to try playing again
-        const clickHandler = () => {
-          element.play().catch(err => console.error("Error playing on click:", err));
-          element.removeEventListener('click', clickHandler);
-        };
-        element.addEventListener('click', clickHandler);
+        // Wait a bit and try again
+        setTimeout(() => {
+          element.play().catch(err => {
+            console.error("Error playing video on retry:", err);
+            // Add a click handler to try playing again with user interaction
+            element.setAttribute('data-needs-interaction', 'true');
+            
+            const clickHandler = () => {
+              element.play().catch(err => console.error("Error playing on click:", err));
+              element.removeEventListener('click', clickHandler);
+            };
+            element.addEventListener('click', clickHandler);
+          });
+        }, 500);
       });
     }
     

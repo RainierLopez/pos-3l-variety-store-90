@@ -118,12 +118,13 @@ export const BarcodeScanner = ({ isOpen, onClose, onBarcodeDetected }: BarcodeSc
             </div>
           ) : (
             <div className="relative">
+              {/* Main scanner container */}
               <div 
                 ref={scannerRef} 
                 className="w-full overflow-hidden rounded-lg relative"
                 style={{ height: '300px', background: '#333' }}
               >
-                {/* Fallback direct video element */}
+                {/* Direct video fallback element - displayed when Quagga fails */}
                 <video 
                   ref={videoRef}
                   autoPlay
